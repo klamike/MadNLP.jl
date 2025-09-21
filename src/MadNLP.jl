@@ -30,5 +30,6 @@ include("options.jl")
 include(joinpath("IPM", "IPM.jl"))
 include("extension_templates.jl")
 include("precompile.jl")
+include("sensitivity.jl")
 
 end # end module
