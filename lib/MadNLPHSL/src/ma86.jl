@@ -119,6 +119,31 @@ function solve!(M::Ma86Solver{T,INT}, rhs::Vector{T}) where {T,INT}
     M.info.flag < 0 && throw(SolveException())
     return rhs
 end
+
+function solve!(M::Ma86Solver{T,INT}, X::Matrix{T}) where {T,INT}
+    n, nrhs = size(X)
+    HSL.ma86_solve(
+        T,
+        INT,
+        INT(0),
+        INT(nrhs),  # Number of RHS
+        INT(M.csc.n),
+        X,
+        M.order,
+        M.keep,
+        M.control,
+        M.info,
+        C_NULL,
+    )
+    M.info.flag < 0 && throw(SolveException())
+    return X
+end
+
+function multi_solve!(M::Ma86Solver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
+
 is_inertia(::Ma86Solver) = true
 function inertia(M::Ma86Solver)
     return (

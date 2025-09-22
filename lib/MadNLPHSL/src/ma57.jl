@@ -176,6 +176,35 @@ function solve!(M::Ma57Solver{T,INT}, rhs::Vector{T}) where {T,INT}
     return rhs
 end
 
+function solve!(M::Ma57Solver{T,INT}, X::Matrix{T}) where {T,INT}
+    n, nrhs = size(X)
+    HSL.ma57cr(
+        T,
+        INT,
+        one(INT),
+        INT(M.csc.n),
+        M.fact,
+        M.lfact,
+        M.ifact,
+        M.lifact,
+        INT(nrhs),  # Number of RHS (9th parameter)
+        X,          # RHS matrix
+        INT(M.csc.n),
+        M.work,
+        M.lwork,
+        M.iwork,
+        M.icntl,
+        M.info,
+    )
+    M.info[1] < 0 && throw(SolveException())
+    return X
+end
+
+function multi_solve!(M::Ma57Solver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
+
 is_inertia(::Ma57Solver) = true
 function inertia(M::Ma57Solver)
     return (M.info[25] - M.info[24], Int64(M.csc.n) - M.info[25], M.info[24])

@@ -115,6 +115,23 @@ function MadNLP.solve!(M::LapackROCSolver, x::AbstractVector)
     return x
 end
 
+function MadNLP.solve!(M::LapackROCSolver{T}, X::Matrix{T}) where T
+    n, nrhs = size(X)
+    for j in 1:nrhs
+        # Solve each column separately
+        rhs_j = view(X, :, j)
+        isempty(M.sol) && resize!(M.sol, M.n)
+        copyto!(M.sol, rhs_j)
+        MadNLP.solve!(M, M.sol)
+        copyto!(rhs_j, M.sol)
+    end
+    return X
+end
+
+function MadNLP.multi_solve!(M::LapackROCSolver, X::AbstractMatrix)
+    MadNLP.solve!(M, X)
+    return X
+end
 for (potrf, potrs, T) in
     ((:rocsolver_dpotrf_64, :rocsolver_dpotrs_64, :Float64),
      (:rocsolver_spotrf_64, :rocsolver_spotrs_64, :Float32))

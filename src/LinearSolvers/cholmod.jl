@@ -64,6 +64,19 @@ function solve!(M::CHOLMODSolver{T}, rhs::Vector{T}) where T
     return rhs
 end
 
+function solve!(M::CHOLMODSolver{T}, X::Matrix{T}) where T
+    if issuccess(M.inner)
+        B = CHOLMOD.Dense(X)
+        Y = CHOLMOD.solve(CHOLMOD.CHOLMOD_A, M.inner, B)
+        copyto!(X, Y)
+    end
+    return X
+end
+
+function multi_solve!(M::CHOLMODSolver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
 # Utils function to copy the diagonal entries directly from CHOLMOD's factor.
 function _get_diagonal!(F::CHOLMOD.Factor{T}, d::Vector{T}) where T
     s = unsafe_load(CHOLMOD.typedpointer(F))

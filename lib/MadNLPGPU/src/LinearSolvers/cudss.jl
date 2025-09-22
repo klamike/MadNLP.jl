@@ -162,6 +162,30 @@ function MadNLP.solve!(M::CUDSSSolver{T,V}, xb::V) where {T,V}
     return xb
 end
 
+function MadNLP.solve!(M::CUDSSSolver{T,V}, X::Matrix{T}) where {T,V}
+    n, nrhs = size(X)
+    for j in 1:nrhs
+        # Solve each column separately
+        rhs_j = view(X, :, j)
+        if M.opt.cudss_ir > 0
+            copyto!(M.buffer, rhs_j)
+            CUDSS.cudss_set(M.b_gpu, M.buffer)
+        else
+            CUDSS.cudss_set(M.b_gpu, rhs_j)
+        end
+        CUDSS.cudss_set(M.x_gpu, rhs_j)
+        CUDSS.cudss("solve", M.inner, M.x_gpu, M.b_gpu)
+        if !M.opt.cudss_hybrid_memory && !M.opt.cudss_hybrid_execute
+            CUDA.synchronize()
+        end
+    end
+    return X
+end
+
+function MadNLP.multi_solve!(M::CUDSSSolver, X::AbstractMatrix)
+    MadNLP.solve!(M, X)
+    return X
+end
 MadNLP.input_type(::Type{CUDSSSolver}) = :csc
 MadNLP.default_options(::Type{CUDSSSolver}) = CudssSolverOptions()
 MadNLP.is_inertia(M::CUDSSSolver) = true  # Uncomment if MadNLP.LU is supported -- (M.opt.cudss_algorithm ∈ (MadNLP.CHOLESKY, MadNLP.LDL))

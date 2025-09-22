@@ -167,6 +167,29 @@ function solve!(M::Ma77Solver{T,INT}, rhs::Vector{T}) where {T,INT}
     return rhs
 end
 
+function solve!(M::Ma77Solver{T,INT}, X::Matrix{T}) where {T,INT}
+    n, nrhs = size(X)
+    HSL.ma77_solve(
+        T,
+        INT,
+        INT(0),
+        INT(nrhs),  # Number of RHS
+        INT(M.full.n),
+        X,
+        M.keep,
+        M.control,
+        M.info,
+        C_NULL,
+    )
+    M.info.flag < 0 && throw(SolveException())
+    return X
+end
+
+function multi_solve!(M::Ma77Solver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
+
 is_inertia(::Ma77Solver) = true
 function inertia(M::Ma77Solver)
     return (

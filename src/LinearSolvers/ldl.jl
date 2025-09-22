@@ -39,6 +39,19 @@ function solve!(M::LDLSolver{T},rhs::Vector{T}) where T
     return rhs
 end
 
+function solve!(M::LDLSolver{T}, X::Matrix{T}) where T
+    n, nrhs = size(X)
+    for j in 1:nrhs
+        # Solve each column separately
+        ldiv!(M.inner, view(X, :, j))
+    end
+    return X
+end
+
+function multi_solve!(M::LDLSolver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
 is_inertia(::LDLSolver) = true
 function inertia(M::LDLSolver)
     (m, n) = size(M.tril)

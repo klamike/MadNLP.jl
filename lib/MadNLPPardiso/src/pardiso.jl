@@ -244,6 +244,35 @@ function solve!(M::PardisoSolver{T}, rhs::Vector{T}) where {T}
     return rhs
 end
 
+function solve!(M::PardisoSolver{T}, X::Matrix{T}) where {T}
+    n, nrhs = size(X)
+    _pardiso(
+        M.pt,
+        Ref{Int32}(1),
+        Ref{Int32}(1),
+        M.mtype,
+        Ref{Int32}(33),
+        Ref{Int32}(M.csc.n),
+        M.csc.nzval,
+        M.csc.colptr,
+        M.csc.rowval,
+        M.perm,
+        Ref{Int32}(nrhs),  # Number of RHS
+        M.iparm,
+        M.msglvl,
+        X,  # Pass the entire matrix
+        M.w,
+        M.err,
+        M.dparm,
+    )
+    M.err.x < 0 && throw(SolveException())
+    return X
+end
+
+function multi_solve!(M::PardisoSolver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
 function finalize(M::PardisoSolver{T}) where {T}
     return _pardiso(
         M.pt,

@@ -91,6 +91,19 @@ function solve!(M::Ma97Solver{T,INT}, rhs::Vector{T}) where {T,INT}
     M.info.flag < 0 && throw(SolveException())
     return rhs
 end
+
+function solve!(M::Ma97Solver{T,INT}, X::Matrix{T}) where {T,INT}
+    n, nrhs = size(X)
+    HSL.ma97_solve(T, INT, INT(0), INT(nrhs), X, M.n, M.akeep, M.fkeep, M.control, M.info)
+    M.info.flag < 0 && throw(SolveException())
+    return X
+end
+
+function multi_solve!(M::Ma97Solver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
+
 is_inertia(::Ma97Solver) = true
 function inertia(M::Ma97Solver)
     return (M.info.matrix_rank - M.info.num_neg, M.n - M.info.matrix_rank, M.info.num_neg)

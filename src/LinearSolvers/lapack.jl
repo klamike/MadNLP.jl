@@ -76,6 +76,21 @@ function factorize!(M::LapackCPUSolver)
         error(M.logger, "Invalid lapack_algorithm")
     end
 end
+function solve_multirhs!(M::LapackCPUSolver, N)
+    if M.opt.lapack_algorithm == BUNCHKAUFMAN
+        solve_bunchkaufman_multirhs!(M,N)
+    elseif M.opt.lapack_algorithm == LU
+        solve_lu_multirhs!(M,N)
+    elseif M.opt.lapack_algorithm == QR
+        solve_qr_multirhs!(M,N)
+    elseif M.opt.lapack_algorithm == CHOLESKY
+        solve_cholesky_multirhs!(M,N)
+    elseif M.opt.lapack_algorithm == EVD
+        solve_evd_multirhs!(M,N)
+    else
+        error(LOGGER, "Invalid lapack_algorithm")
+    end
+end
 
 for T in (:Float32, :Float64)
     @eval begin
@@ -107,9 +122,14 @@ function solve!(M::LapackCPUSolver, x::AbstractVector)
     return x
 end
 
-for (potrf, potrs, getrf, getrs, sytrf, sytrs, geqrf, ormqr, trsv, syevd, gemv, T) in
-    ((:spotrf_, :spotrs_, :sgetrf_, :sgetrs_, :ssytrf_, :ssytrs_, :sgeqrf_, :sormqr_, :strsv_, :ssyevd_, :sgemv_, :Float32),
-     (:dpotrf_, :dpotrs_, :dgetrf_, :dgetrs_, :dsytrf_, :dsytrs_, :dgeqrf_, :dormqr_, :dtrsv_, :dsyevd_, :dgemv_, :Float64))
+function multi_solve!(M::LapackCPUSolver, X::AbstractMatrix)
+    solve_multirhs!(M, X)
+    return X
+end
+
+for (potrf, potrs, getrf, getrs, sytrf, sytrs, geqrf, ormqr, trsv, syevd, gemv, trsm, gemm, T) in
+    ((:spotrf_, :spotrs_, :sgetrf_, :sgetrs_, :ssytrf_, :ssytrs_, :sgeqrf_, :sormqr_, :strsv_, :ssyevd_, :sgemv_, :strsm_, :sgemm_, :Float32),
+     (:dpotrf_, :dpotrs_, :dgetrf_, :dgetrs_, :dsytrf_, :dsytrs_, :dgeqrf_, :dormqr_, :dtrsv_, :dsyevd_, :dgemv_, :dtrsm_, :dgemm_, :Float64))
     @eval begin
         # potrf
         function $potrf(uplo, n, a, lda, info)
@@ -212,6 +232,11 @@ for (potrf, potrs, getrf, getrs, sytrf, sytrs, geqrf, ormqr, trsv, syevd, gemv, 
             return x
         end
 
+        function solve_cholesky_multirhs!(M::LapackCPUSolver{$T}, N::Matrix{$T})
+            $potrs('L', M.n, size(N, 2), M.fact, M.n, N, M.n, M.info)
+            return N
+        end
+
         function setup_bunchkaufman!(M::LapackCPUSolver{$T})
             resize!(M.ipiv, M.n)
             $sytrf('L', M.n, M.fact, M.n, M.ipiv, M.work, M.lwork, M.info)
@@ -231,6 +256,11 @@ for (potrf, potrs, getrf, getrs, sytrf, sytrs, geqrf, ormqr, trsv, syevd, gemv, 
             return x
         end
 
+        function solve_bunchkaufman_multirhs!(M::LapackCPUSolver{$T}, N::Matrix{$T})
+            $sytrs('L', M.n, size(N,2), M.fact, M.n, M.ipiv, N, M.n, M.info)
+            return N
+        end
+
         function setup_lu!(M::LapackCPUSolver{$T})
             resize!(M.ipiv, M.n)
             return M
@@ -244,6 +274,11 @@ for (potrf, potrs, getrf, getrs, sytrf, sytrs, geqrf, ormqr, trsv, syevd, gemv, 
         function solve_lu!(M::LapackCPUSolver{$T}, x::Vector{$T})
             $getrs('N', M.n, one(BlasInt), M.fact, M.n, M.ipiv, x, M.n, M.info)
             return x
+        end
+
+        function solve_lu_multirhs!(M::LapackCPUSolver{$T}, N::Matrix{$T})
+            $getrs('N', M.n, size(N, 2), M.fact, M.n, M.ipiv, N, M.n, M.info)
+            return N
         end
 
         function setup_qr!(M::LapackCPUSolver{$T})
@@ -266,6 +301,12 @@ for (potrf, potrs, getrf, getrs, sytrf, sytrs, geqrf, ormqr, trsv, syevd, gemv, 
             $ormqr('L', 'T', M.n, one(BlasInt), M.n, M.fact, M.n, M.tau, x, M.n, M.work, M.lwork, M.info)
             $trsv('U', 'N', 'N' , M.n, M.fact, M.n, x, one(BlasInt))
             return x
+        end
+
+        function solve_qr_multirhs!(M::LapackCPUSolver{$T}, N::Matrix{$T})
+            $ormqr('L', 'T', M.n, size(N,2), M.n, M.fact, M.n, M.tau, N, M.n, M.work, M.lwork, M.info)
+            $trsm('L', 'U', 'N', 'N', M.n, size(N,2), one($T), M.fact, M.n, N, M.n)
+            return N
         end
 
         function setup_evd!(M::LapackCPUSolver{$T})
@@ -291,6 +332,22 @@ for (potrf, potrs, getrf, getrs, sytrf, sytrs, geqrf, ormqr, trsv, syevd, gemv, 
             M.tau ./= M.Λ
             $gemv('N', M.n, M.n, one($T), M.fact, M.n, M.tau, one(BlasInt), zero($T), x, one(BlasInt))
             return x
+        end
+
+        function solve_evd_multirhs!(M::LapackCPUSolver{$T}, N::Matrix{$T})
+            # Create temporary matrix for intermediate result
+            Y = Matrix{$T}(undef, M.n, size(N,2))
+            # First compute Y = Q^T * N
+            $gemm('T', 'N', M.n, size(N,2), M.n, one($T), M.fact, M.n, N, M.n, zero($T), Y, M.n)
+            # Scale by eigenvalues: Y = Y ./ Λ (elementwise for each column)
+            for j in 1:size(Y,2)
+                for i in 1:M.n
+                    Y[i,j] /= M.Λ[i]
+                end
+            end
+            # Finally compute N = Q * Y
+            $gemm('N', 'N', M.n, size(N,2), M.n, one($T), M.fact, M.n, Y, M.n, zero($T), N, M.n)
+            return N
         end
     end
 end

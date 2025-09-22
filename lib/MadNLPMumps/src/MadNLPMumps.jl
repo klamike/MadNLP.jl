@@ -269,6 +269,23 @@ function solve!(M::MumpsSolver{T},rhs::Vector{T}) where T
     return rhs
 end
 
+function solve!(M::MumpsSolver{T}, X::Matrix{T}) where T
+    M.is_singular && return X
+    n, nrhs = size(X)
+    for j in 1:nrhs
+        rhs_j = view(X, :, j)
+        M.mumps_struc.rhs = pointer(rhs_j)
+        M.mumps_struc.job = 3
+        locked_mumps_c(M.mumps_struc)
+        M.mumps_struc.info[1] < 0 && throw(SolveException())
+    end
+    return X
+end
+
+function multi_solve!(M::MumpsSolver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
 is_inertia(::MumpsSolver) = true
 function inertia(M::MumpsSolver)
     return (M.csc.n-M.is_singular-M.mumps_struc.infog[12],

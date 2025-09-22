@@ -199,6 +199,40 @@ function solve!(M::Ma27Solver{T,INT}, rhs::Vector{T}) where {T,INT}
     return rhs
 end
 
+function solve!(M::Ma27Solver{T,INT}, X::Matrix{T}) where {T,INT}
+    n, nrhs = size(X)
+    length(M.w) < M.maxfrt[1] && resize!(M.w, M.maxfrt[1])
+    length(M.iw1) < M.nsteps[1] && resize!(M.iw1, M.nsteps[1])
+
+    for j in 1:nrhs
+        # Solve column by column
+        rhs_j = view(X, :, j)
+        HSL.ma27cr(
+            T,
+            INT,
+            M.csc.n,
+            M.a,
+            M.la,
+            M.iw,
+            M.liw,
+            M.w,
+            M.maxfrt,
+            rhs_j,
+            M.iw1,
+            M.nsteps,
+            M.icntl,
+            M.info,
+        )
+        M.info[1] < 0 && throw(SolveException())
+    end
+    return X
+end
+
+function multi_solve!(M::Ma27Solver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
+
 is_inertia(::Ma27Solver) = true
 function inertia(M::Ma27Solver)
     dim = M.csc.n

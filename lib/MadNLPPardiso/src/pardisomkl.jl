@@ -225,6 +225,36 @@ function solve!(M::PardisoMKLSolver{T}, rhs::Vector{T}) where {T}
     return rhs
 end
 
+function solve!(M::PardisoMKLSolver{T}, X::Matrix{T}) where {T}
+    n, nrhs = size(X)
+    pardisomkl_set_num_threads!(M.opt.pardisomkl_num_threads)
+    pardisomkl_pardiso(
+        M.pt,
+        Ref{Int32}(1),
+        Ref{Int32}(1),
+        Ref{Int32}(-2),
+        Ref{Int32}(33),
+        Ref{Int32}(M.csc.n),
+        M.csc.nzval,
+        M.csc.colptr,
+        M.csc.rowval,
+        M.perm,
+        Ref{Int32}(nrhs),  # Number of RHS
+        M.iparm,
+        M.msglvl,
+        X,  # Pass the entire matrix
+        M.w,
+        M.err,
+    )
+    pardisomkl_set_num_threads!(blas_num_threads[])
+    M.err.x < 0 && throw(SolveException())
+    return X
+end
+
+function multi_solve!(M::PardisoMKLSolver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
 function finalize(M::PardisoMKLSolver{T}) where {T}
     return pardisomkl_pardiso(
         M.pt,

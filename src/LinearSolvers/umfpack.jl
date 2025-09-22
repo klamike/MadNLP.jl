@@ -54,6 +54,24 @@ function solve!(M::UmfpackSolver{T},rhs::Vector{T}) where T
     return rhs
 end
 
+function solve!(M::UmfpackSolver{T}, X::Matrix{T}) where T
+    if UMFPACK.issuccess(M.inner)
+        n, nrhs = size(X)
+        for j in 1:nrhs
+            # Extract j-th column
+            M.p .= view(X, :, j)
+            UMFPACK.ldiv!(M.d, M.inner, M.p)
+            # Store result back
+            X[:, j] .= M.d
+        end
+    end
+    return X
+end
+
+function multi_solve!(M::UmfpackSolver, X::AbstractMatrix)
+    solve!(M, X)
+    return X
+end
 is_inertia(::UmfpackSolver) = false
 inertia(M::UmfpackSolver) = throw(InertiaException())
 input_type(::Type{UmfpackSolver}) = :csc
