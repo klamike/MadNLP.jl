@@ -9,14 +9,13 @@ export hess_param!, jac_param!
 Build the right-hand side for the sensitivity linear system using multiple dispatch
 for different KKT system types.
 """
-function build_sensitivity_rhs(kkt::AbstractUnreducedKKTSystem, ∇xpL, ∇pg)
+function build_sensitivity_rhs(kkt::AbstractKKTSystem, ∇xpL, ∇pg)
     n_tot = length(kkt.pr_diag)
     m = length(kkt.du_diag)
-    nlb = length(kkt.l_diag)
-    nub = length(kkt.u_diag)
+    slackpad = get_slack_padding(kkt)
     n_p = size(∇xpL, 2)
 
-    rhs = similar(∇xpL, n_tot + m + nlb + nub, n_p)
+    rhs = similar(∇xpL, n_tot + m + slackpad, n_p)
     fill!(rhs, zero(eltype(rhs)))
 
     n_x = size(∇xpL, 1)
@@ -29,23 +28,16 @@ function build_sensitivity_rhs(kkt::AbstractUnreducedKKTSystem, ∇xpL, ∇pg)
     return rhs
 end
 
-function build_sensitivity_rhs(kkt::AbstractReducedKKTSystem, ∇xpL, ∇pg)
-    n_tot = length(kkt.pr_diag)
-    m = length(kkt.du_diag)
-    n_p = size(∇xpL, 2)
-
-    rhs = similar(∇xpL, n_tot + m, n_p)
-    fill!(rhs, zero(eltype(rhs)))
-
-    n_x = size(∇xpL, 1)
-    rhs_x = view(rhs, 1:n_x, :)
-    copyto!(rhs_x, -∇xpL)
-
-    rhs_con = view(rhs, n_tot+1:n_tot+m, :)
-    copyto!(rhs_con, -∇pg)
-
-    return rhs
+function get_slack_padding(kkt::AbstractUnreducedKKTSystem)
+    return length(kkt.l_diag) + length(kkt.u_diag)
 end
+function get_slack_padding(kkt::AbstractReducedKKTSystem)
+    return 0
+end
+function get_slack_padding(kkt::AbstractCondensedKKTSystem)
+    return 0
+end
+
 
 function build_sensitivity_rhs(kkt::AbstractCondensedKKTSystem, ∇xpL, ∇pg)
     n_x = size(∇xpL, 1)
@@ -67,11 +59,13 @@ function build_sensitivity_rhs(kkt::AbstractCondensedKKTSystem, ∇xpL, ∇pg)
 
             n = num_variables(kkt)
             if length(kkt.pr_diag) >= n + n_ineq
-                Σs = view(kkt.pr_diag, n+1:n+n_ineq)
+                Σs = get_slack_regularization(kkt)
+                Σd_ineq = view(kkt.du_diag, kkt.ind_ineq)
+                diag_buffer = Σs ./ (1.0 .- Σd_ineq .* Σs)
 
                 A_ineq = view(kkt.jac, kkt.ind_ineq, :)
                 if length(Σs) >= n_ineq
-                    weighted_derivs = Σs .* ∇pg_ineq
+                    weighted_derivs = diag_buffer .* ∇pg_ineq
                     rhs_x .-= A_ineq' * weighted_derivs
                 end
             end
@@ -183,6 +177,8 @@ function sensitivity_analysis(solver::MadNLPSolver, p::AbstractVector)
 
     return compute_sensitivity(solver, ∇xpL, ∇pg)
 end
+
+### !! Type piracy !! ###
 
 """
     hess_param!(nlp, ∇xpL, x, y, p)
