@@ -50,32 +50,37 @@ function build_sensitivity_rhs(kkt::AbstractCondensedKKTSystem, ∇xpL, ∇pg)
     rhs_x = view(rhs, 1:n_x, :)
     copyto!(rhs_x, -∇xpL)
 
-    if kkt.n_ineq > 0
-        n_ineq = kkt.n_ineq
-        m_total = size(∇pg, 1)
-
-        if n_ineq <= m_total
-            ∇pg_ineq = view(∇pg, kkt.ind_ineq, :)
-
-            n = num_variables(kkt)
-            if length(kkt.pr_diag) >= n + n_ineq
-                Σs = get_slack_regularization(kkt)
-                Σd_ineq = view(kkt.du_diag, kkt.ind_ineq)
-                diag_buffer = Σs ./ (1.0 .- Σd_ineq .* Σs)
-
-                A_ineq = view(kkt.jac, kkt.ind_ineq, :)
-                if length(Σs) >= n_ineq
-                    weighted_derivs = diag_buffer .* ∇pg_ineq
-                    rhs_x .-= A_ineq' * weighted_derivs
-                end
-            end
-        end
+    if kkt.n_ineq > 0 && kkt.n_ineq <= size(∇pg, 1)
+        ∇pg_ineq = view(∇pg, kkt.ind_ineq, :)
+        A_ineq = view(kkt.jac, kkt.ind_ineq, :)
+        weighted_derivs = kkt.diag_buffer .* ∇pg_ineq
+        rhs_x .-= A_ineq' * weighted_derivs
     end
 
     if n_eq > 0
         ∇pg_eq = view(∇pg, kkt.ind_eq, :)
         rhs_eq = view(rhs, n_x+1:n_x+n_eq, :)
         copyto!(rhs_eq, -∇pg_eq)
+    end
+
+    return rhs
+end
+
+function build_sensitivity_rhs(kkt::SparseCondensedKKTSystem, ∇xpL, ∇pg)
+    n_x = size(∇xpL, 1)
+    n_p = size(∇xpL, 2)
+
+    rhs = similar(∇xpL, n_x, n_p)
+    fill!(rhs, zero(eltype(rhs)))
+
+    rhs_x = view(rhs, 1:n_x, :)
+    copyto!(rhs_x, -∇xpL)
+
+    if length(kkt.ind_ineq) > 0 && length(kkt.ind_ineq) <= size(∇pg, 1)
+        ∇pg_ineq = view(∇pg, kkt.ind_ineq, :)
+        A_ineq = view(kkt.jac, kkt.ind_ineq, :)
+        weighted_derivs = kkt.diag_buffer .* ∇pg_ineq
+        rhs_x .-= A_ineq' * weighted_derivs
     end
 
     return rhs
@@ -108,7 +113,13 @@ function extract_sensitivities(kkt::AbstractKKTSystem, S, solver, ∇pg)
     return ∇x, ∇y, ∇z
 end
 
-function extract_sensitivities(kkt::AbstractCondensedKKTSystem, S, solver, ∇pg)
+function get_slack_regularization(kkt::AbstractCondensedKKTSystem)
+    n = num_variables(kkt)
+    ns = length(kkt.ind_ineq)
+    return view(kkt.pr_diag, n-ns+1:n)
+end
+
+function extract_sensitivities(kkt::DenseCondensedKKTSystem, S, solver, ∇pg)
     n_x = get_nvar(solver.nlp)
     m = get_ncon(solver.nlp)
     n_ineq = length(solver.ind_ineq)
@@ -116,21 +127,42 @@ function extract_sensitivities(kkt::AbstractCondensedKKTSystem, S, solver, ∇pg
     n_p = size(S, 2)
 
     ∇x = view(S, 1:n_x, :)
-
-    n_eq_kkt = kkt.n_eq
-    ∇y = n_eq_kkt > 0 ? view(S, n_x+1:n_x+n_eq_kkt, :) : similar(S, 0, n_p)
+    ∇y = n_eq > 0 ? view(S, n_x+1:n_x+n_eq, :) : similar(S, 0, n_p)
 
     ∇z = similar(S, n_ineq, n_p)
     fill!(∇z, zero(eltype(∇z)))
-    
+
     if n_ineq > 0
         Σs = get_slack_regularization(kkt)
-        Σd_ineq = view(kkt.du_diag, kkt.ind_ineq)
         ∇pg_ineq = view(∇pg, kkt.ind_ineq, :)
         A_ineq = view(kkt.jac, kkt.ind_ineq, :)
 
         A_ineq_Δx = A_ineq * ∇x
-        ∇z .= Σs .* (∇pg_ineq .+ A_ineq_Δx) ./ (1.0 .- Σd_ineq .* Σs)
+        ∇z .= kkt.diag_buffer .* (∇pg_ineq .+ A_ineq_Δx)
+    end
+
+    return ∇x, ∇y, ∇z
+end
+
+function extract_sensitivities(kkt::SparseCondensedKKTSystem, S, solver, ∇pg)
+    n_x = get_nvar(solver.nlp)
+    m = get_ncon(solver.nlp)
+    n_ineq = length(solver.ind_ineq)
+    n_p = size(S, 2)
+
+    ∇x = view(S, 1:n_x, :)
+    ∇y = similar(S, 0, n_p)  # SparseCondensedKKTSystem only supports inequality constraints
+
+    ∇z = similar(S, n_ineq, n_p)
+    fill!(∇z, zero(eltype(∇z)))
+
+    if n_ineq > 0
+        Σs = get_slack_regularization(kkt)
+        ∇pg_ineq = view(∇pg, kkt.ind_ineq, :)
+
+        A_ineq_view = view(kkt.jt_csc, :, kkt.ind_ineq)
+        A_ineq_Δx = A_ineq_view' * ∇x
+        ∇z .= kkt.diag_buffer .* (∇pg_ineq .+ A_ineq_Δx)
     end
 
     return ∇x, ∇y, ∇z
@@ -155,7 +187,7 @@ end
 High-level function for sensitivity analysis.
 """
 function sensitivity_analysis(solver::MadNLPSolver, p::AbstractVector)
-    solver.status != SOLVE_SUCCEEDED && error("Solver must converge before sensitivity analysis")
+    solver.status ∉ [SOLVE_SUCCEEDED, SOLVED_TO_ACCEPTABLE_LEVEL] && error("Solver must converge before sensitivity analysis")
     length(p) == 0 && error("Parameter vector cannot be empty")
     !all(isfinite.(p)) && error("Parameter vector contains NaN or Inf values")
 
@@ -179,6 +211,7 @@ function sensitivity_analysis(solver::MadNLPSolver, p::AbstractVector)
 end
 
 ### !! Type piracy !! ###
+# FIXME: ParametricNLPModel?
 
 """
     hess_param!(nlp, ∇xpL, x, y, p)
