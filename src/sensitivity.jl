@@ -50,7 +50,7 @@ function build_sensitivity_rhs(kkt::AbstractCondensedKKTSystem, ∇xpL, ∇pg)
     rhs_x = view(rhs, 1:n_x, :)
     copyto!(rhs_x, -∇xpL)
 
-    if kkt.n_ineq > 0 && kkt.n_ineq <= size(∇pg, 1)
+    if kkt.n_ineq > 0
         ∇pg_ineq = view(∇pg, kkt.ind_ineq, :)
         A_ineq = view(kkt.jac, kkt.ind_ineq, :)
         weighted_derivs = kkt.diag_buffer .* ∇pg_ineq
@@ -76,7 +76,7 @@ function build_sensitivity_rhs(kkt::SparseCondensedKKTSystem, ∇xpL, ∇pg)
     rhs_x = view(rhs, 1:n_x, :)
     copyto!(rhs_x, -∇xpL)
 
-    if length(kkt.ind_ineq) > 0 && length(kkt.ind_ineq) <= size(∇pg, 1)
+    if !isempty(kkt.ind_ineq)
         ∇pg_ineq = view(∇pg, kkt.ind_ineq, :)
         A_ineq = view(kkt.jac, kkt.ind_ineq, :)
         weighted_derivs = kkt.diag_buffer .* ∇pg_ineq
