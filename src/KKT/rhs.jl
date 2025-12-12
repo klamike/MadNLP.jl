@@ -87,12 +87,12 @@ abstract type AbstractUnreducedKKTVector{T, VT} <: AbstractKKTVector{T,VT} end
 Full KKT vector ``(x, s, y, z, ν, w)``, associated to a [`AbstractUnreducedKKTSystem`](@ref).
 
 """
-struct UnreducedKKTVector{T, VT<:AbstractVector{T}, VI} <: AbstractUnreducedKKTVector{T, VT}
+struct UnreducedKKTVector{T, VT, VT2} <: AbstractUnreducedKKTVector{T, VT}
     values::VT
     x::VT  # unsafe view
     xp::VT # unsafe view
-    xp_lr::SubVector{T, VT, VI}
-    xp_ur::SubVector{T, VT, VI}
+    xp_lr::VT2
+    xp_ur::VT2
     xl::VT # unsafe view
     xzl::VT # unsafe view
     xzu::VT # unsafe view
@@ -103,6 +103,13 @@ function UnreducedKKTVector(
 ) where {T, VT <: AbstractVector{T}}
     values = VT(undef,n+m+nlb+nub)
     fill!(values, zero(T))
+
+    return UnreducedKKTVector(values, n, m, nlb, nub, ind_lb, ind_ub)
+end
+
+function UnreducedKKTVector(
+    values::VT, n::Int, m::Int, nlb::Int, nub::Int, ind_lb, ind_ub
+) where {T, VT<:AbstractVector{T}}
     # Wrap directly array x to avoid dealing with views
     x = _madnlp_unsafe_wrap(values, n + m) # Primal-Dual
     xp = _madnlp_unsafe_wrap(values, n) # Primal
@@ -113,7 +120,9 @@ function UnreducedKKTVector(
     xp_lr = view(xp, ind_lb)
     xp_ur = view(xp, ind_ub)
 
-    return UnreducedKKTVector(values, x, xp, xp_lr, xp_ur, xl, xzl, xzu)
+    VT2 = typeof(xp_lr)
+
+    return UnreducedKKTVector{T, VT, VT2}(values, x, xp, xp_lr, xp_ur, xl, xzl, xzu)
 end
 
 function UnreducedKKTVector(kkt::AbstractKKTSystem{T, VT}) where {T, VT}
@@ -156,10 +165,10 @@ abstract type AbstractPrimalVector{T, VT} <: AbstractKKTVector{T,VT} end
 Primal vector ``(x, s)``.
 
 """
-struct PrimalVector{T, VT<:AbstractVector{T}, VI} <: AbstractPrimalVector{T, VT}
+struct PrimalVector{T, VT, VT2} <: AbstractPrimalVector{T, VT}
     values::VT
-    values_lr::SubVector{T, VT, VI}
-    values_ur::SubVector{T, VT, VI}
+    values_lr::VT2
+    values_ur::VT2
     x::VT  # unsafe view
     s::VT # unsafe view
 end
@@ -167,14 +176,19 @@ end
 function PrimalVector(::Type{VT}, nx::Int, ns::Int, ind_lb, ind_ub) where {T, VT <: AbstractVector{T}}
     values = VT(undef, nx+ns)
     fill!(values, zero(T))
+
+    return PrimalVector(values, nx, ns, ind_lb, ind_ub)
+end
+
+function PrimalVector(values::VT, nx::Int, ns::Int, ind_lb, ind_ub) where {T, VT<:AbstractVector{T}}
     x = _madnlp_unsafe_wrap(values, nx)
     s = _madnlp_unsafe_wrap(values, ns, nx+1)
     values_lr = view(values, ind_lb)
     values_ur = view(values, ind_ub)
 
-    return PrimalVector(
-        values, values_lr, values_ur, x, s,
-    )
+    VT2 = typeof(values_lr)
+
+    return PrimalVector{T, VT, VT2}(values, values_lr, values_ur, x, s)
 end
 
 full(rhs::PrimalVector) = rhs.values
