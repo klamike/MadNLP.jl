@@ -80,14 +80,14 @@ end
 #=
     UnreducedKKTVector
 =#
-
+abstract type AbstractUnreducedKKTVector{T, VT} <: AbstractKKTVector{T,VT} end
 """
     UnreducedKKTVector{T, VT<:AbstractVector{T}} <: AbstractKKTVector{T, VT}
 
 Full KKT vector ``(x, s, y, z, ν, w)``, associated to a [`AbstractUnreducedKKTSystem`](@ref).
 
 """
-struct UnreducedKKTVector{T, VT<:AbstractVector{T}, VI} <: AbstractKKTVector{T, VT}
+struct UnreducedKKTVector{T, VT<:AbstractVector{T}, VI} <: AbstractUnreducedKKTVector{T, VT}
     values::VT
     x::VT  # unsafe view
     xp::VT # unsafe view
@@ -149,14 +149,14 @@ primal_dual(rhs::UnreducedKKTVector) = rhs.x
 dual_lb(rhs::UnreducedKKTVector) = rhs.xzl
 dual_ub(rhs::UnreducedKKTVector) = rhs.xzu
 
-
+abstract type AbstractPrimalVector{T, VT} <: AbstractKKTVector{T,VT} end
 """
     PrimalVector{T, VT<:AbstractVector{T}} <: AbstractKKTVector{T, VT}
 
 Primal vector ``(x, s)``.
 
 """
-struct PrimalVector{T, VT<:AbstractVector{T}, VI} <: AbstractKKTVector{T, VT}
+struct PrimalVector{T, VT<:AbstractVector{T}, VI} <: AbstractPrimalVector{T, VT}
     values::VT
     values_lr::SubVector{T, VT, VI}
     values_ur::SubVector{T, VT, VI}

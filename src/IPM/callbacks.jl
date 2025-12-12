@@ -1,4 +1,4 @@
-function eval_f_wrapper(solver::AbstractMadNLPSolver, x::PrimalVector{T}) where T
+function eval_f_wrapper(solver::AbstractMadNLPSolver, x::AbstractPrimalVector{T}) where T
     nlp = solver.nlp
     cnt = solver.cnt
     @trace(solver.logger,"Evaluating objective.")
@@ -16,7 +16,7 @@ function eval_f_wrapper(solver::AbstractMadNLPSolver, x::PrimalVector{T}) where 
     return obj_val
 end
 
-function eval_grad_f_wrapper!(solver::AbstractMadNLPSolver, f::PrimalVector{T}, x::PrimalVector{T}) where T
+function eval_grad_f_wrapper!(solver::AbstractMadNLPSolver, f::AbstractPrimalVector{T}, x::AbstractPrimalVector{T}) where T
     nlp = solver.nlp
     cnt = solver.cnt
     @trace(solver.logger,"Evaluating objective gradient.")
@@ -36,7 +36,7 @@ function eval_grad_f_wrapper!(solver::AbstractMadNLPSolver, f::PrimalVector{T}, 
     return f
 end
 
-function eval_cons_wrapper!(solver::AbstractMadNLPSolver, c::AbstractVector{T}, x::PrimalVector{T}) where T
+function eval_cons_wrapper!(solver::AbstractMadNLPSolver, c::AbstractVector{T}, x::AbstractPrimalVector{T}) where T
     nlp = solver.nlp
     cnt = solver.cnt
     @trace(solver.logger, "Evaluating constraints.")
@@ -54,7 +54,7 @@ function eval_cons_wrapper!(solver::AbstractMadNLPSolver, c::AbstractVector{T}, 
     return c
 end
 
-function eval_jac_wrapper!(solver::AbstractMadNLPSolver, kkt::AbstractKKTSystem, x::PrimalVector{T}) where T
+function eval_jac_wrapper!(solver::AbstractMadNLPSolver, kkt::AbstractKKTSystem, x::AbstractPrimalVector{T}) where T
     nlp = solver.nlp
     cnt = solver.cnt
     ns = length(solver.ind_ineq)
@@ -74,7 +74,7 @@ function eval_jac_wrapper!(solver::AbstractMadNLPSolver, kkt::AbstractKKTSystem,
     return jac
 end
 
-function eval_lag_hess_wrapper!(solver::AbstractMadNLPSolver, kkt::AbstractKKTSystem, x::PrimalVector{T},l::AbstractVector{T};is_resto=false) where T
+function eval_lag_hess_wrapper!(solver::AbstractMadNLPSolver, kkt::AbstractKKTSystem, x::AbstractPrimalVector{T},l::AbstractVector{T};is_resto=false) where T
     nlp = solver.nlp
     cnt = solver.cnt
     @trace(solver.logger,"Evaluating Lagrangian Hessian.")
@@ -95,7 +95,7 @@ function eval_lag_hess_wrapper!(solver::AbstractMadNLPSolver, kkt::AbstractKKTSy
     return hess
 end
 
-function eval_jac_wrapper!(solver::AbstractMadNLPSolver, kkt::AbstractDenseKKTSystem, x::PrimalVector{T}) where T
+function eval_jac_wrapper!(solver::AbstractMadNLPSolver, kkt::AbstractDenseKKTSystem, x::AbstractPrimalVector{T}) where T
     nlp = solver.nlp
     cnt = solver.cnt
     ns = length(solver.ind_ineq)
@@ -118,7 +118,7 @@ end
 function eval_lag_hess_wrapper!(
     solver::AbstractMadNLPSolver,
     kkt::AbstractDenseKKTSystem{T, VT, MT, QN},
-    x::PrimalVector{T},
+    x::AbstractPrimalVector{T},
     l::AbstractVector{T};
     is_resto=false,
 ) where {T, VT, MT, QN<:ExactHessian}
@@ -145,7 +145,7 @@ end
 function eval_lag_hess_wrapper!(
     solver::AbstractMadNLPSolver,
     kkt::AbstractKKTSystem{T, VT, MT, QN},
-    x::PrimalVector{T},
+    x::AbstractPrimalVector{T},
     l::AbstractVector{T};
     is_resto=false,
 ) where {T, VT, MT<:AbstractMatrix{T}, QN<:AbstractQuasiNewton{T, VT}}
