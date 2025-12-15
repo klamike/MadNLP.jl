@@ -104,10 +104,10 @@ function UnreducedKKTVector(
     values = VT(undef,n+m+nlb+nub)
     fill!(values, zero(T))
 
-    return UnreducedKKTVector(values, n, m, nlb, nub, ind_lb, ind_ub)
+    return init_unreduced_kktvector(values, n, m, nlb, nub, ind_lb, ind_ub)
 end
 
-function UnreducedKKTVector(
+function init_unreduced_kktvector(
     values::VT, n::Int, m::Int, nlb::Int, nub::Int, ind_lb, ind_ub
 ) where {T, VT<:AbstractVector{T}}
     # Wrap directly array x to avoid dealing with views
@@ -120,9 +120,7 @@ function UnreducedKKTVector(
     xp_lr = view(xp, ind_lb)
     xp_ur = view(xp, ind_ub)
 
-    VT2 = typeof(xp_lr)
-
-    return UnreducedKKTVector{T, VT, VT2}(values, x, xp, xp_lr, xp_ur, xl, xzl, xzu)
+    return UnreducedKKTVector(values, x, xp, xp_lr, xp_ur, xl, xzl, xzu)
 end
 
 function UnreducedKKTVector(kkt::AbstractKKTSystem{T, VT}) where {T, VT}
@@ -158,6 +156,7 @@ primal_dual(rhs::UnreducedKKTVector) = rhs.x
 dual_lb(rhs::UnreducedKKTVector) = rhs.xzl
 dual_ub(rhs::UnreducedKKTVector) = rhs.xzu
 
+
 """
     PrimalVector{T, VT<:AbstractVector{T}} <: AbstractKKTVector{T, VT}
 
@@ -176,18 +175,18 @@ function PrimalVector(::Type{VT}, nx::Int, ns::Int, ind_lb, ind_ub) where {T, VT
     values = VT(undef, nx+ns)
     fill!(values, zero(T))
 
-    return PrimalVector(values, nx, ns, ind_lb, ind_ub)
+    return init_primal_kktvector(values, nx, ns, ind_lb, ind_ub)
 end
 
-function PrimalVector(values::VT, nx::Int, ns::Int, ind_lb, ind_ub) where {T, VT<:AbstractVector{T}}
+function init_primal_kktvector(values::VT, nx::Int, ns::Int, ind_lb, ind_ub) where {T, VT<:AbstractVector{T}}
     x = _madnlp_unsafe_wrap(values, nx)
     s = _madnlp_unsafe_wrap(values, ns, nx+1)
     values_lr = view(values, ind_lb)
     values_ur = view(values, ind_ub)
 
-    VT2 = typeof(values_lr)
-
-    return PrimalVector{T, VT, VT2}(values, values_lr, values_ur, x, s)
+    return PrimalVector(
+        values, values_lr, values_ur, x, s,
+    )
 end
 
 full(rhs::PrimalVector) = rhs.values

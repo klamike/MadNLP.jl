@@ -68,12 +68,9 @@ function _build_sparsekkt_structure(
     return (
         n=n, m=m, n_slack=n_slack, n_tot=n_tot,
         n_jac=n_jac, n_hess=n_hess, nlb=nlb, nub=nub,
-        aug_vec_length=aug_vec_length,
-        aug_mat_length=aug_mat_length,
-        jac_sparsity_I=jac_sparsity_I,
-        jac_sparsity_J=jac_sparsity_J,
-        hess_sparsity_I=hess_sparsity_I,
-        hess_sparsity_J=hess_sparsity_J,
+        aug_vec_length=aug_vec_length, aug_mat_length=aug_mat_length,
+        jac_sparsity_I=jac_sparsity_I, jac_sparsity_J=jac_sparsity_J,
+        hess_sparsity_I=hess_sparsity_I, hess_sparsity_J=hess_sparsity_J,
         ind_ineq=ind_ineq,
     )
 end
@@ -117,16 +114,17 @@ function _build_sparsekkt_views(
        hess_sparsity_I, hess_sparsity_J, ind_ineq) = structure
 
     pr_diag = _madnlp_unsafe_wrap(V, n_tot)
-    du_diag = _madnlp_unsafe_wrap(V, m, n_jac + n_slack + n_hess + n_tot + 1)
-    hess = _madnlp_unsafe_wrap(V, n_hess, n_tot + 1)
-    jac = _madnlp_unsafe_wrap(V, n_jac + n_slack, n_hess + n_tot + 1)
-    jac_callback = _madnlp_unsafe_wrap(V, n_jac, n_hess + n_tot + 1)
+    du_diag = _madnlp_unsafe_wrap(V, m, n_jac+n_slack+n_hess+n_tot+1)
 
     reg = VT(undef, n_tot)
     l_diag = VT(undef, nlb)
     u_diag = VT(undef, nub)
     l_lower = VT(undef, nlb)
     u_lower = VT(undef, nub)
+    
+    hess = _madnlp_unsafe_wrap(V, n_hess, n_tot + 1)
+    jac = _madnlp_unsafe_wrap(V, n_jac + n_slack, n_hess + n_tot + 1)
+    jac_callback = _madnlp_unsafe_wrap(V, n_jac, n_hess + n_tot + 1)
 
     aug_raw = SparseMatrixCOO(aug_vec_length, aug_vec_length, I, J, V)
     jac_raw = SparseMatrixCOO(
@@ -158,10 +156,8 @@ function build_sparse_kkt_system(
     structure,
     linear_solver::Type;
     opt_linear_solver=default_options(linear_solver),
-    hessian_approximation=ExactHessian,
-    qn_options=QuasiNewtonOptions(),
+    hessian_approximation=ExactHessian, qn_options=QuasiNewtonOptions(),
 ) where {T, VT}
-
     views = _build_sparsekkt_views(VT, I, J, V, structure)
 
     aug_com, aug_csc_map = coo_to_csc(views.aug_raw)

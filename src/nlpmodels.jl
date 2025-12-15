@@ -445,20 +445,10 @@ end
 
 function init_sparse_callback!(
     nlp::AbstractNLPModel{T, VT},
-    con_buffer::VT,
-    jac_buffer::VT,
-    grad_buffer::VT,
-    hess_buffer::VT,
-    jac_I::VI,
-    jac_J::VI,
-    hess_I::VI,
-    hess_J::VI,
-    obj_scale,
-    obj_sign,
-    con_scale::VT,
-    jac_scale::VT;
-    fixed_variable_treatment::Type{FH}=MakeParameter,
-    equality_treatment::Type{EH}=EnforceEquality,
+    con_buffer::VT, jac_buffer::VT, grad_buffer::VT, hess_buffer::VT,
+    jac_I::VI, jac_J::VI, hess_I::VI, hess_J::VI,
+    obj_scale, obj_sign, con_scale::VT, jac_scale::VT;
+    fixed_variable_treatment::Type{FH}=MakeParameter, equality_treatment::Type{EH}=EnforceEquality,
     populate_structure::Bool=true,
 ) where {T, VT, VI, FH<:AbstractFixedVariableTreatment, EH<:AbstractEqualityTreatment}
 
