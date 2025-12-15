@@ -84,7 +84,7 @@ function build_aug_indices!(
        jac_sparsity_I, jac_sparsity_J,
        hess_sparsity_I, hess_sparsity_J, ind_ineq) = structure
 
-    offset = n_tot + n_jac + n_slack + n_hess + m
+    offset = n_tot+n_jac+n_slack+n_hess+m
 
     I[1:n_tot] .= 1:n_tot
     I[n_tot+1:n_tot+n_hess] = hess_sparsity_I

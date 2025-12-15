@@ -437,7 +437,7 @@ function create_callback(
         nlp,
         con_buffer, jac_buffer, grad_buffer, hess_buffer,
         jac_I, jac_J, hess_I, hess_J,
-        obj_scale, obj_sign, con_scale, jac_scale;
+        obj_scale, con_scale, jac_scale;
         fixed_variable_treatment, equality_treatment,
         populate_structure=true,
     )
@@ -447,21 +447,19 @@ function init_sparse_callback!(
     nlp::AbstractNLPModel{T, VT},
     con_buffer::VT, jac_buffer::VT, grad_buffer::VT, hess_buffer::VT,
     jac_I::VI, jac_J::VI, hess_I::VI, hess_J::VI,
-    obj_scale, obj_sign, con_scale::VT, jac_scale::VT;
+    obj_scale, con_scale::VT, jac_scale::VT;
     fixed_variable_treatment::Type{FH}=MakeParameter, equality_treatment::Type{EH}=EnforceEquality,
     populate_structure::Bool=true,
 ) where {T, VT, VI, FH<:AbstractFixedVariableTreatment, EH<:AbstractEqualityTreatment}
 
     n = get_nvar(nlp)
     m = get_ncon(nlp)
-    nnzj = get_nnzj(nlp.meta)
-    nnzh = get_nnzh(nlp.meta)
 
     if populate_structure
-        if nnzj > 0
+        if get_nnzj(nlp.meta) > 0
             NLPModels.jac_structure!(nlp, jac_I, jac_J)
         end
-        if nnzh > 0
+        if get_nnzh(nlp.meta) > 0
             NLPModels.hess_structure!(nlp, hess_I, hess_J)
         end
     end
@@ -518,7 +516,7 @@ function init_sparse_callback!(
         hess_I,
         hess_J,
         obj_scale,
-        obj_sign,
+        get_minimize(nlp) ? one(T) : -one(T),
         con_scale,
         jac_scale,
         fixed_handler,
