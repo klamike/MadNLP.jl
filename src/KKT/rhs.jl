@@ -120,7 +120,9 @@ function init_unreduced_kktvector(
     xp_lr = view(xp, ind_lb)
     xp_ur = view(xp, ind_ub)
 
-    return UnreducedKKTVector(values, x, xp, xp_lr, xp_ur, xl, xzl, xzu)
+    return UnreducedKKTVector{T,typeof(x),typeof(xp_lr)}(
+        values, x, xp, xp_lr, xp_ur, xl, xzl, xzu,
+    )
 end
 
 function UnreducedKKTVector(kkt::AbstractKKTSystem{T, VT}) where {T, VT}
