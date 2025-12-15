@@ -190,3 +190,4 @@ full(rhs::PrimalVector) = rhs.values
 primal(rhs::PrimalVector) = rhs.values
 variable(rhs::PrimalVector) = rhs.x
 slack(rhs::PrimalVector) = rhs.s
+
