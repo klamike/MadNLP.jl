@@ -163,10 +163,10 @@ dual_ub(rhs::UnreducedKKTVector) = rhs.xzu
 Primal vector ``(x, s)``.
 
 """
-struct PrimalVector{T, VT, VT2} <: AbstractKKTVector{T, VT}
+struct PrimalVector{T, VT<:AbstractVector{T}, VI} <: AbstractKKTVector{T, VT}
     values::VT
-    values_lr::VT2
-    values_ur::VT2
+    values_lr::SubVector{T, VT, VI}
+    values_ur::SubVector{T, VT, VI}
     x::VT  # unsafe view
     s::VT # unsafe view
 end
@@ -174,11 +174,6 @@ end
 function PrimalVector(::Type{VT}, nx::Int, ns::Int, ind_lb, ind_ub) where {T, VT <: AbstractVector{T}}
     values = VT(undef, nx+ns)
     fill!(values, zero(T))
-
-    return init_primal_kktvector(values, nx, ns, ind_lb, ind_ub)
-end
-
-function init_primal_kktvector(values::VT, nx::Int, ns::Int, ind_lb, ind_ub) where {T, VT<:AbstractVector{T}}
     x = _madnlp_unsafe_wrap(values, nx)
     s = _madnlp_unsafe_wrap(values, ns, nx+1)
     values_lr = view(values, ind_lb)

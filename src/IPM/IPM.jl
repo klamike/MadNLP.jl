@@ -33,15 +33,15 @@ mutable struct MadNLPSolver{
     nlb::Int
     nub::Int
 
-    x::PrimalVector{T, VT, SubVector{T,VT,VI}} # primal (after reformulation)
+    x::PrimalVector{T, VT, VI} # primal (after reformulation)
     y::VT # dual
-    zl::PrimalVector{T, VT, SubVector{T,VT,VI}} # dual (after reformulation)
-    zu::PrimalVector{T, VT, SubVector{T,VT,VI}} # dual (after reformulation)
-    xl::PrimalVector{T, VT, SubVector{T,VT,VI}} # primal lower bound (after reformulation)
-    xu::PrimalVector{T, VT, SubVector{T,VT,VI}} # primal upper bound (after reformulation)
+    zl::PrimalVector{T, VT, VI} # dual (after reformulation)
+    zu::PrimalVector{T, VT, VI} # dual (after reformulation)
+    xl::PrimalVector{T, VT, VI} # primal lower bound (after reformulation)
+    xu::PrimalVector{T, VT, VI} # primal upper bound (after reformulation)
 
     obj_val::T
-    f::PrimalVector{T, VT, SubVector{T,VT,VI}}
+    f::PrimalVector{T, VT, VI}
     c::VT
 
     jacl::VT
@@ -54,7 +54,7 @@ mutable struct MadNLPSolver{
     _w3::KKTVec
     _w4::KKTVec
 
-    x_trial::PrimalVector{T, VT, SubVector{T,VT,VI}}
+    x_trial::PrimalVector{T, VT, VI}
     c_trial::VT
     obj_val_trial::T
 
