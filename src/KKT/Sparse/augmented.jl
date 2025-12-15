@@ -122,11 +122,11 @@ function _build_sparsekkt_views(
     l_lower = VT(undef, nlb)
     u_lower = VT(undef, nub)
     
-    hess = _madnlp_unsafe_wrap(V, n_hess, n_tot + 1)
-    jac = _madnlp_unsafe_wrap(V, n_jac + n_slack, n_hess + n_tot + 1)
-    jac_callback = _madnlp_unsafe_wrap(V, n_jac, n_hess + n_tot + 1)
+    hess = _madnlp_unsafe_wrap(V, n_hess, n_tot+1)
+    jac = _madnlp_unsafe_wrap(V, n_jac+n_slack, n_hess+n_tot+1)
+    jac_callback = _madnlp_unsafe_wrap(V, n_jac, n_hess+n_tot+1)
 
-    aug_raw = SparseMatrixCOO(aug_vec_length, aug_vec_length, I, J, V)
+    aug_raw = SparseMatrixCOO(aug_vec_length,aug_vec_length,I,J,V)
     jac_raw = SparseMatrixCOO(
         m, n_tot,
         Int32[jac_sparsity_I; ind_ineq],
