@@ -1,14 +1,3 @@
-const SparseKKTStructure = @NamedTuple{
-    n::Int, m::Int, n_slack::Int, n_tot::Int,
-    n_jac::Int, n_hess::Int, nlb::Int, nub::Int,
-    aug_vec_length::Int, aug_mat_length::Int,
-    jac_sparsity_I::Vector{Int32},
-    jac_sparsity_J::Vector{Int32},
-    hess_sparsity_I::Vector{Int32},
-    hess_sparsity_J::Vector{Int32},
-    ind_ineq::Vector{Int},
-}
-
 """
     SparseKKTSystem{T, VT, MT, QN} <: AbstractReducedKKTSystem{T, VT, MT, QN}
 
@@ -57,7 +46,7 @@ function _build_sparsekkt_structure(
     # Evaluate sparsity pattern
     jac_sparsity_I = create_array(cb, Int32, cb.nnzj)
     jac_sparsity_J = create_array(cb, Int32, cb.nnzj)
-    _jac_sparsity_wrapper!(cb, jac_sparsity_I, jac_sparsity_J)
+    _jac_sparsity_wrapper!(cb,jac_sparsity_I, jac_sparsity_J)
 
     hess_sparsity_I, hess_sparsity_J = build_hessian_structure(cb, hessian_approximation)
 
@@ -92,7 +81,7 @@ end
 function build_aug_indices!(
     I::AbstractVector{Int32},
     J::AbstractVector{Int32},
-    structure::SparseKKTStructure,
+    structure,
 )
     (; n, n_tot, n_jac, n_hess, n_slack, m,
        jac_sparsity_I, jac_sparsity_J,
@@ -120,7 +109,7 @@ function _build_sparsekkt_views(
     I::AbstractVector{Int32},
     J::AbstractVector{Int32},
     V::VT,
-    structure::SparseKKTStructure,
+    structure,
 ) where {T, VT <: AbstractVector{T}}
 
     (; n, m, n_tot, n_jac, n_hess, n_slack, nlb, nub,
@@ -166,7 +155,7 @@ function build_sparse_kkt_system(
     I::AbstractVector{Int32},
     J::AbstractVector{Int32},
     V::VT,
-    structure::SparseKKTStructure,
+    structure,
     linear_solver::Type;
     opt_linear_solver=default_options(linear_solver),
     hessian_approximation=ExactHessian,

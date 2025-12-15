@@ -80,14 +80,14 @@ end
 #=
     UnreducedKKTVector
 =#
-abstract type AbstractUnreducedKKTVector{T, VT} <: AbstractKKTVector{T,VT} end
+
 """
     UnreducedKKTVector{T, VT<:AbstractVector{T}} <: AbstractKKTVector{T, VT}
 
 Full KKT vector ``(x, s, y, z, ν, w)``, associated to a [`AbstractUnreducedKKTSystem`](@ref).
 
 """
-struct UnreducedKKTVector{T, VT, VT2} <: AbstractUnreducedKKTVector{T, VT}
+struct UnreducedKKTVector{T, VT, VT2} <: AbstractKKTVector{T, VT}
     values::VT
     x::VT  # unsafe view
     xp::VT # unsafe view
@@ -158,14 +158,13 @@ primal_dual(rhs::UnreducedKKTVector) = rhs.x
 dual_lb(rhs::UnreducedKKTVector) = rhs.xzl
 dual_ub(rhs::UnreducedKKTVector) = rhs.xzu
 
-abstract type AbstractPrimalVector{T, VT} <: AbstractKKTVector{T,VT} end
 """
     PrimalVector{T, VT<:AbstractVector{T}} <: AbstractKKTVector{T, VT}
 
 Primal vector ``(x, s)``.
 
 """
-struct PrimalVector{T, VT, VT2} <: AbstractPrimalVector{T, VT}
+struct PrimalVector{T, VT, VT2} <: AbstractKKTVector{T, VT}
     values::VT
     values_lr::VT2
     values_ur::VT2
@@ -195,4 +194,3 @@ full(rhs::PrimalVector) = rhs.values
 primal(rhs::PrimalVector) = rhs.values
 variable(rhs::PrimalVector) = rhs.x
 slack(rhs::PrimalVector) = rhs.s
-
