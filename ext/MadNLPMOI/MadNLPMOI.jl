@@ -1532,7 +1532,7 @@ function MOI.optimize!(model::Optimizer)
     # Instantiate MadNLP.
     needs_wrap = model.array_type != Vector{Float64} && !(
         model.nlp isa MadNLP.SparseWrapperModel &&
-        NLPModels.get_x0(model.nlp) isa model.array_type
+            NLPModels.get_x0(model.nlp) isa model.array_type
     )
     model.nlp = if needs_wrap
         MadNLP.SparseWrapperModel(model.array_type, model.nlp)

@@ -111,7 +111,7 @@ end
 
 function test_madnlp(name,optimizer_constructor::Function,exclude; Arr = Array)
     @testset "$name" begin
-        for f in [infeasible,unbounded,lootsma,eigmina,lp_examodels_issue75,moi_array_type]
+        for f in [infeasible, unbounded, lootsma, eigmina, lp_examodels_issue75, moi_array_type]
             !(string(f) in exclude) && f(optimizer_constructor; Arr = Arr)
         end
     end
@@ -451,6 +451,8 @@ function moi_array_type(optimizer_constructor::Function; Arr = Array)
         @test termination_status(m) == MOI.LOCALLY_SOLVED
         @test solcmp([value(x)], [1.0])
     end
+
+    return nothing
 end
 
 include("Instances/dummy_qp.jl")
