@@ -111,7 +111,7 @@ end
 
 function test_madnlp(name,optimizer_constructor::Function,exclude; Arr = Array)
     @testset "$name" begin
-        for f in [infeasible,unbounded,lootsma,eigmina,lp_examodels_issue75]
+        for f in [infeasible,unbounded,lootsma,eigmina,lp_examodels_issue75,moi_array_type]
             !(string(f) in exclude) && f(optimizer_constructor; Arr = Arr)
         end
     end
@@ -437,6 +437,19 @@ function lp_examodels_issue75(optimizer_constructor::Function; Arr = Array)
         result = MadNLP.madnlp(nlp; optimizer.options...)
 
         @test result.status == MadNLP.SOLVE_SUCCEEDED
+    end
+end
+
+function moi_array_type(optimizer_constructor::Function; Arr = Array)
+    @testset "moi_array_type" begin
+        m = Model(optimizer_constructor)
+        MOI.set(m, MOI.RawOptimizerAttribute("array_type"), Arr)
+        @variable(m, x >= 1)
+        @objective(m, Min, x^2)
+        optimize!(m)
+
+        @test termination_status(m) == MOI.LOCALLY_SOLVED
+        @test solcmp([value(x)], [1.0])
     end
 end
 
