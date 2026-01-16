@@ -1541,7 +1541,7 @@ function MOI.optimize!(model::Optimizer)
     end
     model.solver = MadNLP.MadNLPSolver(model.nlp; options...)
     model.result = MadNLP.solve!(model.solver)
-    model.result = if needs_wrap
+    model.result = if !(model.result.solution isa Vector{Float64})
         MadNLP.cpu_copy(model.result)
     else
         model.result
