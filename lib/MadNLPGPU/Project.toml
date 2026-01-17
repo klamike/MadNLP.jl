@@ -35,3 +35,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test", "MadNLPTests", "AMDGPU"]
+
+[sources]
+MadNLP = {rev = "mk/fixmoigpu", url = "https://github.com/klamike/MadNLP.jl.git"}
+MadNLPTests = {rev = "mk/fixmoigpu", subdir = "lib/MadNLPTests", url = "https://github.com/klamike/MadNLP.jl.git"}
