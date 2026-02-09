@@ -87,7 +87,7 @@ function create_kkt_system(
 
     I = create_array(cb, Int32, aug_mat_length)
     J = create_array(cb, Int32, aug_mat_length)
-    V = zeros(aug_mat_length)
+    V = VT(undef, aug_mat_length)
 
     offset = n_tot + n_jac + n_slack + n_hess + m
 
@@ -176,4 +176,3 @@ num_variables(kkt::SparseUnreducedKKTSystem) = length(kkt.pr_diag)
 function build_kkt!(kkt::SparseUnreducedKKTSystem)
     transfer!(kkt.aug_com, kkt.aug_raw, kkt.aug_csc_map)
 end
-
