@@ -74,7 +74,7 @@ end
 
 function MadNLP.mul_hess_blk!(
     wx::VT,
-    kkt::Union{MadNLP.SparseKKTSystem,MadNLP.SparseCondensedKKTSystem},
+    kkt::MadNLP.SparseCondensedKKTSystem,
     t,
 ) where {T,VT<:CuVector{T}}
     n = size(kkt.hess_com, 1)
@@ -358,7 +358,7 @@ end
 =#
 
 function MadNLP.compress_hessian!(
-    kkt::MadNLP.AbstractSparseKKTSystem{T,VT,MT},
+    kkt::MadNLP.SparseCondensedKKTSystem{T,VT,MT},
 ) where {T,VT,MT<:CUSPARSE.CuSparseMatrixCSC{T,Int32}}
     fill!(kkt.hess_com.nzVal, zero(T))
     backend = CUDABackend()
