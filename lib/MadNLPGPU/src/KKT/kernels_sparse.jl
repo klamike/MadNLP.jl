@@ -12,6 +12,17 @@
 end
 
 #=
+    _transfer_to_map_kernel! (accumulates duplicates)
+=#
+
+@kernel function _transfer_to_map_kernel!(dest, @Const(to_map), @Const(src))
+    k = @index(Global, Linear)
+    @inbounds begin
+        Atomix.@atomic dest[to_map[k]] += src[k]
+    end
+end
+
+#=
     _copy_from_map_kernel!
 =#
 
