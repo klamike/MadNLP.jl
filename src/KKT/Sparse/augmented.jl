@@ -131,7 +131,7 @@ function create_kkt_system(
         aug_com; opt = opt_linear_solver
     )
 
-    ext = get_sparse_kkt_ext(VT, hess_com)
+    ext = get_sparse_kkt_ext(VT, hess_com, hess_csc_map)
 
     return SparseKKTSystem(
         hess, jac_callback, jac, quasi_newton, reg, pr_diag, du_diag,
@@ -146,7 +146,7 @@ function create_kkt_system(
 
 end
 
-get_sparse_kkt_ext(::Type{Vector{T}}, hess_com) where T = nothing
+get_sparse_kkt_ext(::Type{Vector{T}}, hess_com, hess_csc_map) where T = nothing
 
 num_variables(kkt::SparseKKTSystem) = length(kkt.pr_diag)
 

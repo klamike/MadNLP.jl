@@ -165,7 +165,7 @@ function create_kkt_system(
         aug_com; opt = opt_linear_solver
     )
 
-    ext = get_sparse_kkt_ext(VT, hess_com)
+    ext = get_sparse_kkt_ext(VT, hess_com, hess_csc_map)
 
     return ScaledSparseKKTSystem(
         hess, jac_callback, jac, quasi_newton, reg, pr_diag, du_diag,
