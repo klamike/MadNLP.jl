@@ -13,6 +13,7 @@ import .CUBLAS: handle, CUBLAS_DIAG_NON_UNIT,
 
 # Kernels
 import KernelAbstractions: @kernel, @index, synchronize, @Const
+import Atomix
 
 import MadNLP: NLPModels
 import MadNLP

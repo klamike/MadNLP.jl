@@ -7,11 +7,17 @@
 =#
 
 function MadNLP.transfer!(
-    dest::CUSPARSE.CuSparseMatrixCSC,
+    dest::CUSPARSE.CuSparseMatrixCSC{T},
     src::MadNLP.SparseMatrixCOO,
     map,
-)
-    return copyto!(view(dest.nzVal, map), src.V)
+) where {T}
+    fill!(dest.nzVal, zero(T))
+    if length(map) > 0
+        backend = CUDABackend()
+        _transfer_to_map_kernel!(backend)(dest.nzVal, map, src.V; ndrange=length(map))
+        synchronize(backend)
+    end
+    return
 end
 
 #=
@@ -74,7 +80,7 @@ end
 
 function MadNLP.mul_hess_blk!(
     wx::VT,
-    kkt::Union{MadNLP.SparseKKTSystem,MadNLP.SparseCondensedKKTSystem},
+    kkt::MadNLP.AbstractSparseKKTSystem,
     t,
 ) where {T,VT<:CuVector{T}}
     n = size(kkt.hess_com, 1)
@@ -102,6 +108,41 @@ function MadNLP.mul_hess_blk!(
     return
 end
 
+function MadNLP.mul_hess_blk!(
+    wx::VT,
+    kkt::MadNLP.SparseUnreducedKKTSystem,
+    t,
+) where {T,VT<:CuVector{T}}
+    ind_lb = kkt.ind_lb
+    ind_ub = kkt.ind_ub
+
+    n = size(kkt.hess_com, 1)
+    wxx = @view(wx[1:n])
+    tx = @view(t[1:n])
+
+    MadNLP.mul!(wxx, kkt.hess_com, tx, one(T), zero(T))
+    MadNLP.mul!(wxx, kkt.hess_com', tx, one(T), one(T))
+    if !isempty(kkt.ext.diag_map_to)
+        backend = CUDABackend()
+        _diag_operation_kernel!(backend)(
+            wxx,
+            kkt.hess_com.nzVal,
+            tx,
+            one(T),
+            kkt.ext.diag_map_to,
+            kkt.ext.diag_map_fr;
+            ndrange = length(kkt.ext.diag_map_to),
+        )
+        synchronize(backend)
+    end
+
+    fill!(@view(wx[n+1:end]), 0)
+    wx .+= t .* kkt.pr_diag
+    wx[ind_lb] .-= @view(t[ind_lb]) .* (kkt.l_lower ./ kkt.l_diag)
+    wx[ind_ub] .-= @view(t[ind_ub]) .* (kkt.u_lower ./ kkt.u_diag)
+    return
+end
+
 function MadNLP.get_tril_to_full(csc::CUSPARSE.CuSparseMatrixCSC{Tv,Ti}) where {Tv,Ti}
     cscind = MadNLP.SparseMatrixCSC{Int,Ti}(
         Symmetric(
@@ -123,6 +164,17 @@ function MadNLP.get_tril_to_full(csc::CUSPARSE.CuSparseMatrixCSC{Tv,Ti}) where {
     view(csc.nzVal, CuArray(cscind.nzval))
 end
 
+function build_csc_transfer_map(csc_map::CuVector)
+    zvals = CuVector{Int}(1:length(csc_map))
+    ptr = map((i, j) -> (i, j), csc_map, zvals)
+    if length(ptr) > 0 # otherwise error is thrown
+        sort!(ptr)
+    end
+    by = (i, j) -> i[1] != j[1]
+    ptrptr = MadNLP.getptr(ptr, by = by)
+    return ptr, ptrptr
+end
+
 function MadNLP.get_sparse_condensed_ext(
     ::Type{VT},
     hess_com,
@@ -130,22 +182,11 @@ function MadNLP.get_sparse_condensed_ext(
     jt_map,
     hess_map,
 ) where {T,VT<:CuVector{T}}
-    zvals = CuVector{Int}(1:length(hess_map))
-    hess_com_ptr = map((i, j) -> (i, j), hess_map, zvals)
-    if length(hess_com_ptr) > 0 # otherwise error is thrown
-        sort!(hess_com_ptr)
-    end
-
-    jvals = CuVector{Int}(1:length(jt_map))
-    jt_csc_ptr = map((i, j) -> (i, j), jt_map, jvals)
-    if length(jt_csc_ptr) > 0 # otherwise error is thrown
-        sort!(jt_csc_ptr)
-    end
+    hess_com_ptr, hess_com_ptrptr = build_csc_transfer_map(hess_map)
+    jt_csc_ptr, jt_csc_ptrptr = build_csc_transfer_map(jt_map)
 
     by = (i, j) -> i[1] != j[1]
     jptrptr = MadNLP.getptr(jptr, by = by)
-    hess_com_ptrptr = MadNLP.getptr(hess_com_ptr, by = by)
-    jt_csc_ptrptr = MadNLP.getptr(jt_csc_ptr, by = by)
 
     diag_map_to, diag_map_fr = get_diagonal_mapping(hess_com.colPtr, hess_com.rowVal)
 
@@ -183,6 +224,18 @@ function get_diagonal_mapping(colptr, rowval)
     end
 
     return rows[inds2], ptrs[inds2]
+end
+
+function MadNLP.get_sparse_kkt_ext(
+    ::Type{VT},
+    hess_com::CUSPARSE.CuSparseMatrixCSC,
+    hess_csc_map,
+) where {T, VT<:CuVector{T}}
+    diag_map_to, diag_map_fr = get_diagonal_mapping(hess_com.colPtr, hess_com.rowVal)
+    return (
+        diag_map_to = diag_map_to,
+        diag_map_fr = diag_map_fr,
+    )
 end
 
 function MadNLP._sym_length(Jt::CUSPARSE.CuSparseMatrixCSC)
@@ -354,26 +407,9 @@ function MadNLP.build_condensed_aug_coord!(
 end
 
 #=
-    MadNLP.compress_hessian! / MadNLP.compress_jacobian!
+    MadNLP.compress_jacobian!
 =#
 
-function MadNLP.compress_hessian!(
-    kkt::MadNLP.AbstractSparseKKTSystem{T,VT,MT},
-) where {T,VT,MT<:CUSPARSE.CuSparseMatrixCSC{T,Int32}}
-    fill!(kkt.hess_com.nzVal, zero(T))
-    backend = CUDABackend()
-    if length(kkt.ext.hess_com_ptrptr) > 1
-        _transfer_to_csc_kernel!(backend)(
-            kkt.hess_com.nzVal,
-            kkt.ext.hess_com_ptr,
-            kkt.ext.hess_com_ptrptr,
-            kkt.hess_raw.V;
-            ndrange = length(kkt.ext.hess_com_ptrptr) - 1,
-        )
-        synchronize(backend)
-    end
-    return
-end
 
 function MadNLP.compress_jacobian!(
     kkt::MadNLP.SparseCondensedKKTSystem{T,VT,MT},

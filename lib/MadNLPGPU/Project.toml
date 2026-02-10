@@ -4,6 +4,7 @@ version = "0.7.18"
 
 [deps]
 AMD = "14f7f29c-3bd6-536c-9a0b-7339e30b5a3e"
+Atomix = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 CUDSS = "45b445bb-4962-46a0-9369-b4df9d0f772e"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
@@ -21,6 +22,7 @@ MadNLPGPUAMDGPUExt = "AMDGPU"
 [compat]
 AMD = "0.5"
 AMDGPU = "2"
+Atomix = "1.1.2"
 CUDA = "5.4.0"
 CUDSS = "0.6.4"
 KernelAbstractions = "0.9"

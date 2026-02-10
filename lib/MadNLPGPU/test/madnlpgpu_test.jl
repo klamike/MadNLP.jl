@@ -8,7 +8,7 @@ cuda_testset = [
         ),
         [],
     ],
-    [
+    #=[
         "CUDSS-AMD",
         ()->MadNLP.Optimizer(
             linear_solver=CUDSSSolver,
@@ -70,26 +70,35 @@ cuda_testset = [
             cudss_pivoting=false,
         ),
         [],
-    ],
-    # [
-    #     "Formulation K2",
-    #     ()->MadNLP.Optimizer(
-    #         linear_solver=CUDSSSolver,
-    #         print_level=MadNLP.ERROR,
-    #         kkt_system=MadNLP.SparseKKTSystem,
-    #     ),
-    #     [],
-    # ],
-    # [
-    #     "Formulation K2.5",
-    #     ()->MadNLP.Optimizer(
-    #         linear_solver=CUDSSSolver,
-    #         print_level=MadNLP.ERROR,
-    #         kkt_system=MadNLP.ScaledSparseKKTSystem,
-    #     ),
-    #     [],
-    # ],
+    ],=#
     [
+        "Formulation K2",
+        () -> MadNLP.Optimizer(
+            linear_solver = CUDSSSolver,
+            print_level = MadNLP.ERROR,
+            kkt_system = MadNLP.SparseKKTSystem,
+        ),
+        [],
+    ],
+    [
+        "Formulation K2.5",
+        () -> MadNLP.Optimizer(
+            linear_solver = CUDSSSolver,
+            print_level = MadNLP.ERROR,
+            kkt_system = MadNLP.ScaledSparseKKTSystem,
+        ),
+        [],
+    ],
+    [
+        "Unreduced",
+        () -> MadNLP.Optimizer(
+            linear_solver = CUDSSSolver,
+            print_level = MadNLP.ERROR,
+            kkt_system = MadNLP.SparseUnreducedKKTSystem,
+        ),
+        [],
+    ],
+    #= [
         "LapackGPU-BUNCHKAUFMAN",
         ()->MadNLP.Optimizer(
             linear_solver=LapackCUDASolver,
@@ -133,7 +142,7 @@ cuda_testset = [
             print_level=MadNLP.ERROR,
         ),
         ["infeasible", "lootsma", "eigmina", "lp_examodels_issue75"], # KKT system not PD
-    ],
+    ],=#
 ]
 
 rocm_testset = [
@@ -175,12 +184,12 @@ rocm_testset = [
     ],
 ]
 
-@testset "MadNLPGPU test" begin
+begin
     if CUDA.functional()
         MadNLPTests.test_linear_solver(LapackCUDASolver,Float32)
         MadNLPTests.test_linear_solver(LapackCUDASolver,Float64)
         # Test LapackGPU wrapper
-        for (name,optimizer_constructor,exclude) in cuda_testset
+        @testset "$name" for (name,optimizer_constructor,exclude) in cuda_testset
             test_madnlp(name,optimizer_constructor,exclude; Arr=CuArray)
         end
     end

@@ -29,7 +29,7 @@ with
 Optimization Methods and Software 37, no. 4 (2022): 1344-1369.
 
 """
-struct ScaledSparseKKTSystem{T, VT, MT, QN, LS, VI, VI32} <: AbstractReducedKKTSystem{T, VT, MT, QN}
+struct ScaledSparseKKTSystem{T, VT, MT, QN, LS, VI, VI32, EXT} <: AbstractReducedKKTSystem{T, VT, MT, QN}
     hess::VT
     jac_callback::VT
     jac::VT
@@ -63,6 +63,8 @@ struct ScaledSparseKKTSystem{T, VT, MT, QN, LS, VI, VI32} <: AbstractReducedKKTS
     ind_ineq::VI
     ind_lb::VI
     ind_ub::VI
+
+    ext::EXT
 end
 
 # Build KKT system directly from SparseCallback
@@ -163,6 +165,8 @@ function create_kkt_system(
         aug_com; opt = opt_linear_solver
     )
 
+    ext = get_sparse_kkt_ext(VT, hess_com, hess_csc_map)
+
     return ScaledSparseKKTSystem(
         hess, jac_callback, jac, quasi_newton, reg, pr_diag, du_diag,
         l_diag, u_diag, l_lower, u_lower,
@@ -172,6 +176,7 @@ function create_kkt_system(
         jac_raw, jac_com, jac_csc_map,
         _linear_solver,
         ind_ineq, cb.ind_lb, cb.ind_ub,
+        ext,
     )
 end
 
@@ -240,4 +245,3 @@ function regularize_diagonal!(kkt::ScaledSparseKKTSystem, primal, dual)
     kkt.pr_diag .+= primal .* kkt.scaling_factor.^2
     kkt.du_diag .-= dual
 end
-
