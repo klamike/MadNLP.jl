@@ -13,6 +13,7 @@ import NLPModels: finalize, AbstractNLPModel, obj, grad!, cons!, jac_coord!, hes
 import SolverCore: getStatus, AbstractOptimizationSolver, AbstractExecutionStats
 import LDLFactorizations
 import MUMPS_seq_jll, OpenBLAS32_jll
+import ParametricNLPModels
 
 export MadNLPSolver, MadNLPOptions, UmfpackSolver, LDLSolver, CHOLMODSolver, LapackCPUSolver, MumpsSolver, MadNLPExecutionStats, madnlp, solve!, madsuite
 

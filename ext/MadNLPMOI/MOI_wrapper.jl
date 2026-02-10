@@ -61,6 +61,15 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     jprod_available::Bool
     hprod_available::Bool
     hess_available::Bool
+
+    param_evaluator::Union{Nothing, MOI.Nonlinear.Evaluator}
+    param_n_p::Int
+    param_var_order::Vector{MOI.VariableIndex}
+    param_order::Vector{MOI.VariableIndex}
+    param_vi_to_idx::Dict{MOI.VariableIndex, Int}
+    param_x_combined::Vector{Float64}
+    param_v_extended::Vector{Float64}
+    param_result::Vector{Float64}
 end
 
 function Optimizer(; kwargs...)
@@ -100,6 +109,14 @@ function Optimizer(; kwargs...)
         false,
         false,
         false,
+        nothing,
+        0,
+        MOI.VariableIndex[],
+        MOI.VariableIndex[],
+        Dict{MOI.VariableIndex, Int}(),
+        Float64[],
+        Float64[],
+        Float64[],
     )
 end
 
@@ -162,6 +179,14 @@ function MOI.empty!(model::Optimizer)
     model.jprod_available = false
     model.hprod_available = false
     model.hess_available = false
+    model.param_evaluator = nothing
+    model.param_n_p = 0
+    empty!(model.param_var_order)
+    empty!(model.param_order)
+    empty!(model.param_vi_to_idx)
+    empty!(model.param_x_combined)
+    empty!(model.param_v_extended)
+    empty!(model.param_result)
     return
 end
 
@@ -1233,6 +1258,7 @@ end
 ### NLPModels wrapper
 struct MOIModel{T} <: NLPModels.AbstractNLPModel{T,Vector{T}}
     meta::NLPModels.NLPModelMeta{T, Vector{T}}
+    pmeta::ParametricNLPModels.ParametricNLPModelMeta
     model::Optimizer
     counters::NLPModels.Counters
 end
@@ -1354,6 +1380,36 @@ function _setup_model(model::Optimizer)
     model.hcols = hcols
 
     model.needs_new_nlp = true
+
+    if !isempty(model.parameters) && model.nlp_model !== nothing
+        n_x = length(vars)
+        n_p = length(model.parameters)
+
+        param_vis = sort(collect(keys(model.parameters)); by=x->x.value)
+        model.param_order = param_vis
+        model.param_n_p = n_p
+        model.param_vi_to_idx = Dict(p => i for (i, p) in enumerate(param_vis))
+        model.param_var_order = vars
+
+        param_model = _create_param_as_vars_model(model.nlp_model, n_x)
+        combined_vars = [MOI.VariableIndex(i) for i in 1:(n_x + n_p)]
+        model.param_evaluator = MOI.Nonlinear.Evaluator(
+            param_model, model.ad_backend, combined_vars
+        )
+        MOI.initialize(model.param_evaluator, [:JacVec, :HessVec])
+
+        model.param_x_combined = zeros(Float64, n_x + n_p)
+        model.param_v_extended = zeros(Float64, n_x + n_p)
+        model.param_result = zeros(Float64, n_x + n_p)
+    elseif !isempty(model.parameters)
+        n_p = length(model.parameters)
+        param_vis = sort(collect(keys(model.parameters)); by=x->x.value)
+        model.param_order = param_vis
+        model.param_n_p = n_p
+        model.param_vi_to_idx = Dict(p => i for (i, p) in enumerate(param_vis))
+        model.param_var_order = vars
+    end
+
     return
 end
 
@@ -1415,6 +1471,9 @@ function _setup_nlp(model::Optimizer; array_type = nothing)
         end
     end
 
+    n_p = length(model.parameters)
+    pmeta = ParametricNLPModels.ParametricNLPModelMeta(n_p, 0, 0)
+
     nlp = MOIModel(
         NLPModels.NLPModelMeta(
             nvar,
@@ -1433,6 +1492,7 @@ function _setup_nlp(model::Optimizer; array_type = nothing)
             hprod_available = model.hprod_available,
             hess_available = model.hess_available,
         ),
+        pmeta,
         model,
         NLPModels.Counters(),
     )
