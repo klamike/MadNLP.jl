@@ -5,7 +5,7 @@
 Implement the [`AbstractUnreducedKKTSystem`](@ref) in sparse COO format.
 
 """
-struct SparseUnreducedKKTSystem{T, VT, MT, QN, LS, VI, VI32} <: AbstractUnreducedKKTSystem{T, VT, MT, QN}
+struct SparseUnreducedKKTSystem{T, VT, MT, QN, LS, VI, VI32, EXT} <: AbstractUnreducedKKTSystem{T, VT, MT, QN}
     hess::VT
     jac_callback::VT
     jac::VT
@@ -42,6 +42,8 @@ struct SparseUnreducedKKTSystem{T, VT, MT, QN, LS, VI, VI32} <: AbstractUnreduce
     ind_ineq::VI
     ind_lb::VI
     ind_ub::VI
+
+    ext::EXT
 end
 
 function create_kkt_system(
@@ -146,6 +148,7 @@ function create_kkt_system(
     hess_com, hess_csc_map = coo_to_csc(hess_raw)
 
     _linear_solver = linear_solver(aug_com; opt = opt_linear_solver)
+    ext = get_sparse_kkt_ext(VT, hess_com)
     return SparseUnreducedKKTSystem(
         hess, jac_callback, jac, quasi_newton, reg, pr_diag, du_diag,
         l_diag, u_diag, l_lower, u_lower, l_lower_aug, u_lower_aug,
@@ -154,6 +157,7 @@ function create_kkt_system(
         jac_raw, jac_com, jac_csc_map,
         _linear_solver,
         ind_ineq, ind_lb, ind_ub,
+        ext,
     )
 end
 

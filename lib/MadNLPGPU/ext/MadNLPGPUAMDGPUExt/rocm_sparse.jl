@@ -74,7 +74,7 @@ end
 
 function MadNLP.mul_hess_blk!(
     wx::VT,
-    kkt::MadNLP.SparseCondensedKKTSystem,
+    kkt::Union{MadNLP.SparseKKTSystem, MadNLP.ScaledSparseKKTSystem, MadNLP.SparseCondensedKKTSystem},
     t,
 ) where {T,VT<:ROCVector{T}}
     n = size(kkt.hess_com, 1)
@@ -99,6 +99,41 @@ function MadNLP.mul_hess_blk!(
 
     fill!(@view(wx[n+1:end]), 0)
     wx .+= t .* kkt.pr_diag
+    return
+end
+
+function MadNLP.mul_hess_blk!(
+    wx::VT,
+    kkt::MadNLP.SparseUnreducedKKTSystem,
+    t,
+) where {T,VT<:ROCVector{T}}
+    ind_lb = kkt.ind_lb
+    ind_ub = kkt.ind_ub
+
+    n = size(kkt.hess_com, 1)
+    wxx = @view(wx[1:n])
+    tx = @view(t[1:n])
+
+    MadNLP.mul!(wxx, kkt.hess_com, tx, one(T), zero(T))
+    MadNLP.mul!(wxx, kkt.hess_com', tx, one(T), one(T))
+    if !isempty(kkt.ext.diag_map_to)
+        backend = ROCBackend()
+        MadNLPGPU._diag_operation_kernel!(backend)(
+            wxx,
+            kkt.hess_com.nzVal,
+            tx,
+            one(T),
+            kkt.ext.diag_map_to,
+            kkt.ext.diag_map_fr;
+            ndrange = length(kkt.ext.diag_map_to),
+        )
+        synchronize(backend)
+    end
+
+    fill!(@view(wx[n+1:end]), 0)
+    wx .+= t .* kkt.pr_diag
+    wx[ind_lb] .-= @view(t[ind_lb]) .* (kkt.l_lower ./ kkt.l_diag)
+    wx[ind_ub] .-= @view(t[ind_ub]) .* (kkt.u_lower ./ kkt.u_diag)
     return
 end
 
@@ -183,6 +218,17 @@ function get_diagonal_mapping(colptr, rowval)
     end
 
     return rows[inds2], ptrs[inds2]
+end
+
+function MadNLP.get_sparse_kkt_ext(
+    ::Type{VT},
+    hess_com::rocSPARSE.ROCSparseMatrixCSC,
+) where {T, VT<:ROCVector{T}}
+    diag_map_to, diag_map_fr = get_diagonal_mapping(hess_com.colPtr, hess_com.rowVal)
+    return (
+        diag_map_to = diag_map_to,
+        diag_map_fr = diag_map_fr,
+    )
 end
 
 function MadNLP._sym_length(Jt::rocSPARSE.ROCSparseMatrixCSC)
