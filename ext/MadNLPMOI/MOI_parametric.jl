@@ -330,3 +330,63 @@ function _hptprod_qp_constraint!(Htv, f::MOI.ScalarQuadraticFunction, model, v, 
     end
     return
 end
+
+function ParametricNLPModels.grad_param!(
+    nlp::MOIModel{T}, x::AbstractVector, g::AbstractVector,
+) where {T}
+    model = nlp.model
+    fill!(g, zero(T))
+
+    _grad_param_qp_obj!(g, model.qp_data.objective, model, x)
+
+    if _has_nlp_expressions(model) && model.param_evaluator !== nothing
+        n_x = length(x)
+        n_p = model.param_n_p
+        _fill_x_combined!(model, x)
+
+        grad_full = model.param_result
+        MOI.eval_objective_gradient(model.param_evaluator, grad_full, model.param_x_combined)
+
+        g .+= view(grad_full, n_x+1:n_x+n_p)
+    end
+
+    return g
+end
+
+function _grad_param_qp_obj!(g, f::MOI.ScalarAffineFunction, model, x)
+    for term in f.terms
+        i = _get_param_idx(model, term.variable)
+        !iszero(i) && (g[i] += term.coefficient)
+    end
+    return
+end
+
+function _grad_param_qp_obj!(g, f::MOI.ScalarQuadraticFunction, model, x)
+    for term in f.affine_terms
+        i = _get_param_idx(model, term.variable)
+        !iszero(i) && (g[i] += term.coefficient)
+    end
+
+    for term in f.quadratic_terms
+        vi, vj = term.variable_1, term.variable_2
+        pi = _get_param_idx(model, vi)
+        pj = _get_param_idx(model, vj)
+        xi = _get_primal_idx(model, vi)
+        xj = _get_primal_idx(model, vj)
+        coef = term.coefficient
+
+        !iszero(pi) && !iszero(xj) && (g[pi] += coef * x[xj])
+        !iszero(pj) && !iszero(xi) && (g[pj] += coef * x[xi])
+        if !iszero(pi) && !iszero(pj)
+            p_vals_i = model.nlp_model[model.parameters[model.param_order[pi]]]
+            p_vals_j = model.nlp_model[model.parameters[model.param_order[pj]]]
+            if pi == pj
+                g[pi] += coef * p_vals_i
+            else
+                g[pi] += coef * p_vals_j
+                g[pj] += coef * p_vals_i
+            end
+        end
+    end
+    return
+end
