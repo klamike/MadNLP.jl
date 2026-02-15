@@ -63,6 +63,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     hess_available::Bool
 
     param_evaluator::Union{Nothing, MOI.Nonlinear.Evaluator}
+    param_qp_data::Union{Nothing, QPBlockData{Float64}}
     param_n_p::Int
     param_var_order::Vector{MOI.VariableIndex}
     param_order::Vector{MOI.VariableIndex}
@@ -109,6 +110,7 @@ function Optimizer(; kwargs...)
         false,
         false,
         false,
+        nothing,
         nothing,
         0,
         MOI.VariableIndex[],
@@ -180,6 +182,7 @@ function MOI.empty!(model::Optimizer)
     model.hprod_available = false
     model.hess_available = false
     model.param_evaluator = nothing
+    model.param_qp_data = nothing
     model.param_n_p = 0
     empty!(model.param_var_order)
     empty!(model.param_order)
@@ -1400,34 +1403,30 @@ function _setup_model(model::Optimizer)
 
     model.needs_new_nlp = true
 
-    if !isempty(model.parameters) && model.nlp_model !== nothing
-        n_x = length(vars)
-        n_p = length(model.parameters)
+    n_x = length(vars)
+    n_p = length(model.parameters)
 
-        param_vis = sort(collect(keys(model.parameters)); by=x->x.value)
-        model.param_order = param_vis
-        model.param_n_p = n_p
-        model.param_vi_to_idx = Dict(p => i for (i, p) in enumerate(param_vis))
-        model.param_var_order = vars
+    param_vis = sort(collect(keys(model.parameters)); by=x->x.value)
+    model.param_order = param_vis
+    model.param_n_p = n_p
+    model.param_vi_to_idx = Dict(p => i for (i, p) in enumerate(param_vis))
+    model.param_var_order = vars
+    model.param_qp_data = _create_param_as_vars_qp_data(model, n_x)
 
-        param_model = _create_param_as_vars_model(model.nlp_model, n_x)
-        combined_vars = [MOI.VariableIndex(i) for i in 1:(n_x + n_p)]
-        model.param_evaluator = MOI.Nonlinear.Evaluator(
-            param_model, model.ad_backend, combined_vars
-        )
-        MOI.initialize(model.param_evaluator, [:JacVec, :HessVec])
-
-        model.param_x_combined = zeros(Float64, n_x + n_p)
-        model.param_v_extended = zeros(Float64, n_x + n_p)
-        model.param_result = zeros(Float64, n_x + n_p)
-    elseif !isempty(model.parameters)
-        n_p = length(model.parameters)
-        param_vis = sort(collect(keys(model.parameters)); by=x->x.value)
-        model.param_order = param_vis
-        model.param_n_p = n_p
-        model.param_vi_to_idx = Dict(p => i for (i, p) in enumerate(param_vis))
-        model.param_var_order = vars
+    param_model = if model.nlp_model === nothing
+        MOI.Nonlinear.Model()
+    else
+        _create_param_as_vars_model(model.nlp_model, n_x)
     end
+    combined_vars = [MOI.VariableIndex(i) for i in 1:(n_x + n_p)]
+    model.param_evaluator = MOI.Nonlinear.Evaluator(
+        param_model, model.ad_backend, combined_vars
+    )
+    MOI.initialize(model.param_evaluator, [:Grad, :Jac, :Hess, :JacVec, :HessVec])
+
+    model.param_x_combined = zeros(Float64, n_x + n_p)
+    model.param_v_extended = zeros(Float64, n_x + n_p)
+    model.param_result = zeros(Float64, n_x + n_p)
 
     return
 end
@@ -1491,7 +1490,6 @@ function _setup_nlp(model::Optimizer; array_type = nothing)
     end
 
     n_p = length(model.parameters)
-    pmeta = ParametricNLPModels.ParametricNLPModelMeta(n_p, 0, 0)
 
     nlp = MOIModel(
         NLPModels.NLPModelMeta(
@@ -1514,7 +1512,34 @@ function _setup_nlp(model::Optimizer; array_type = nothing)
             hprod_available = model.hprod_available,
             hess_available = model.hess_available,
         ),
-        pmeta,
+        ParametricNLPModels.ParametricNLPModelMeta(
+            nparam = n_p,
+            nnzj = _param_jac_nnz(model),
+            nnzh = _param_hess_nnz(model),
+            nnzjlcon = 0,
+            nnzjucon = 0,
+            nnzjlvar = 0,
+            nnzjuvar = 0,
+            grad_param_available = true,
+            jac_param_available = true,
+            hess_param_available = true,
+            jpprod_available = true,
+            jptprod_available = true,
+            hpprod_available = true,
+            hptprod_available = true,
+            lcon_jac_available = true,
+            ucon_jac_available = true,
+            lvar_jac_available = true,
+            uvar_jac_available = true,
+            lcon_jpprod_available = true,
+            ucon_jpprod_available = true,
+            lvar_jpprod_available = true,
+            uvar_jpprod_available = true,
+            lcon_jptprod_available = true,
+            ucon_jptprod_available = true,
+            lvar_jptprod_available = true,
+            uvar_jptprod_available = true,
+        ),
         model,
         NLPModels.Counters(),
     )

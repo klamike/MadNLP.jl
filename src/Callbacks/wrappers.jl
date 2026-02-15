@@ -262,11 +262,56 @@ function ParametricNLPModels.hptprod!(m::AbstractWrapperModel, x, y, v, Htv; obj
     return Htv
 end
 
+function ParametricNLPModels.jac_param!(m::AbstractWrapperModel, x, J)
+    copyto!(m.x, x)
+    J_inner = similar(m.x, size(J, 1), size(J, 2))
+    ParametricNLPModels.jac_param!(m.inner, m.x, J_inner)
+    copyto!(J, J_inner)
+    return J
+end
+
+function ParametricNLPModels.hess_param!(m::AbstractWrapperModel, x, y, H; obj_weight = one(eltype(x)))
+    copyto!(m.x, x)
+    copyto!(m.y, y)
+    H_inner = similar(m.x, size(H, 1), size(H, 2))
+    ParametricNLPModels.hess_param!(m.inner, m.x, m.y, H_inner; obj_weight = obj_weight)
+    copyto!(H, H_inner)
+    return H
+end
+
 function ParametricNLPModels.grad_param!(m::AbstractWrapperModel, x, g)
     copyto!(m.x, x)
     ParametricNLPModels.grad_param!(m.inner, m.x, m.param)
     copyto!(g, m.param)
     return g
+end
+
+function ParametricNLPModels.lvar_jac!(m::AbstractWrapperModel, J)
+    J_inner = similar(m.x, size(J, 1), size(J, 2))
+    ParametricNLPModels.lvar_jac!(m.inner, J_inner)
+    copyto!(J, J_inner)
+    return J
+end
+
+function ParametricNLPModels.uvar_jac!(m::AbstractWrapperModel, J)
+    J_inner = similar(m.x, size(J, 1), size(J, 2))
+    ParametricNLPModels.uvar_jac!(m.inner, J_inner)
+    copyto!(J, J_inner)
+    return J
+end
+
+function ParametricNLPModels.lcon_jac!(m::AbstractWrapperModel, J)
+    J_inner = similar(m.x, size(J, 1), size(J, 2))
+    ParametricNLPModels.lcon_jac!(m.inner, J_inner)
+    copyto!(J, J_inner)
+    return J
+end
+
+function ParametricNLPModels.ucon_jac!(m::AbstractWrapperModel, J)
+    J_inner = similar(m.x, size(J, 1), size(J, 2))
+    ParametricNLPModels.ucon_jac!(m.inner, J_inner)
+    copyto!(J, J_inner)
+    return J
 end
 
 function ParametricNLPModels.lvar_jpprod!(m::AbstractWrapperModel, v, Jv)
