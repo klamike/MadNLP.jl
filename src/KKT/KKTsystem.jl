@@ -185,6 +185,14 @@ inside `kkt` and stores the result inplace inside the `AbstractKKTVector` `w`.
 function solve_kkt! end
 
 """
+    multi_solve_kkt_system!(kkt::AbstractKKTSystem, W::AbstractMatrix)
+
+Solve the KKT system for multiple right-hand-sides stored in the columns of `W`.
+The matrix `W` is overwritten in place with the corresponding solutions.
+"""
+function multi_solve_kkt_system! end
+
+"""
     regularize_diagonal!(kkt::AbstractKKTSystem, primal_values::Number, dual_values::Number)
 
 Regularize the values in the diagonal of the KKT system in an incremental fashion.
@@ -264,4 +272,3 @@ include("Sparse/augmented.jl")
 include("Sparse/condensed.jl")
 include("Sparse/scaled_augmented.jl")
 include("Sparse/utils.jl")
-

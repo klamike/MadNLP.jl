@@ -26,6 +26,18 @@ function factorize_wrapper!(solver::AbstractMadNLPSolver)
     return
 end
 
+function multi_solve_kkt_system!(kkt::AbstractKKTSystem, W::AbstractMatrix)
+    rhs = UnreducedKKTVector(kkt)
+    n = length(full(rhs))
+
+    for j in axes(W, 2)
+        copyto!(full(rhs), 1, W, (j - 1) * n + 1, n)
+        solve_kkt_system!(kkt, rhs)
+        copyto!(W, (j - 1) * n + 1, full(rhs), 1, n)
+    end
+    return W
+end
+
 function solve_kkt!(kkt::SparseUnreducedKKTSystem, w::AbstractKKTVector)
     wzl = dual_lb(w)
     wzu = dual_ub(w)
