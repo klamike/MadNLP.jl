@@ -271,10 +271,10 @@ function ParametricNLPModels.grad_param!(
     return g
 end
 
-ParametricNLPModels.lcon_jac!(::MOIModel{T}, J::AbstractMatrix{T}) where {T} = fill!(J, zero(T))
-ParametricNLPModels.ucon_jac!(::MOIModel{T}, J::AbstractMatrix{T}) where {T} = fill!(J, zero(T))
-ParametricNLPModels.lvar_jac!(::MOIModel{T}, J::AbstractMatrix{T}) where {T} = fill!(J, zero(T))
-ParametricNLPModels.uvar_jac!(::MOIModel{T}, J::AbstractMatrix{T}) where {T} = fill!(J, zero(T))
+ParametricNLPModels.lcon_jac_param!(::MOIModel{T}, J::AbstractMatrix{T}) where {T} = fill!(J, zero(T))
+ParametricNLPModels.ucon_jac_param!(::MOIModel{T}, J::AbstractMatrix{T}) where {T} = fill!(J, zero(T))
+ParametricNLPModels.lvar_jac_param!(::MOIModel{T}, J::AbstractMatrix{T}) where {T} = fill!(J, zero(T))
+ParametricNLPModels.uvar_jac_param!(::MOIModel{T}, J::AbstractMatrix{T}) where {T} = fill!(J, zero(T))
 ParametricNLPModels.lcon_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)
 ParametricNLPModels.ucon_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)
 ParametricNLPModels.lvar_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)

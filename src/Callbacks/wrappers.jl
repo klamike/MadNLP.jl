@@ -286,30 +286,30 @@ function ParametricNLPModels.grad_param!(m::AbstractWrapperModel, x, g)
     return g
 end
 
-function ParametricNLPModels.lvar_jac!(m::AbstractWrapperModel, J)
+function ParametricNLPModels.lvar_jac_param!(m::AbstractWrapperModel, J)
     J_inner = similar(m.x, size(J, 1), size(J, 2))
-    ParametricNLPModels.lvar_jac!(m.inner, J_inner)
+    ParametricNLPModels.lvar_jac_param!(m.inner, J_inner)
     copyto!(J, J_inner)
     return J
 end
 
-function ParametricNLPModels.uvar_jac!(m::AbstractWrapperModel, J)
+function ParametricNLPModels.uvar_jac_param!(m::AbstractWrapperModel, J)
     J_inner = similar(m.x, size(J, 1), size(J, 2))
-    ParametricNLPModels.uvar_jac!(m.inner, J_inner)
+    ParametricNLPModels.uvar_jac_param!(m.inner, J_inner)
     copyto!(J, J_inner)
     return J
 end
 
-function ParametricNLPModels.lcon_jac!(m::AbstractWrapperModel, J)
+function ParametricNLPModels.lcon_jac_param!(m::AbstractWrapperModel, J)
     J_inner = similar(m.x, size(J, 1), size(J, 2))
-    ParametricNLPModels.lcon_jac!(m.inner, J_inner)
+    ParametricNLPModels.lcon_jac_param!(m.inner, J_inner)
     copyto!(J, J_inner)
     return J
 end
 
-function ParametricNLPModels.ucon_jac!(m::AbstractWrapperModel, J)
+function ParametricNLPModels.ucon_jac_param!(m::AbstractWrapperModel, J)
     J_inner = similar(m.x, size(J, 1), size(J, 2))
-    ParametricNLPModels.ucon_jac!(m.inner, J_inner)
+    ParametricNLPModels.ucon_jac_param!(m.inner, J_inner)
     copyto!(J, J_inner)
     return J
 end
