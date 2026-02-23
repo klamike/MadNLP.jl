@@ -103,7 +103,12 @@ function UnreducedKKTVector(
 ) where {T, VT <: AbstractVector{T}}
     values = VT(undef,n+m+nlb+nub)
     fill!(values, zero(T))
-    # Wrap directly array x to avoid dealing with views
+    return UnreducedKKTVector!(values, n, m, nlb, nub, ind_lb, ind_ub)
+end
+
+function UnreducedKKTVector!(
+    values::VT, n::Int, m::Int, nlb::Int, nub::Int, ind_lb, ind_ub,
+) where {T, VT<:AbstractVector{T}}
     x = _madnlp_unsafe_wrap(values, n + m) # Primal-Dual
     xp = _madnlp_unsafe_wrap(values, n) # Primal
     xl = _madnlp_unsafe_wrap(values, m, n+1) # Dual
@@ -167,6 +172,10 @@ end
 function PrimalVector(::Type{VT}, nx::Int, ns::Int, ind_lb, ind_ub) where {T, VT <: AbstractVector{T}}
     values = VT(undef, nx+ns)
     fill!(values, zero(T))
+    return PrimalVector!(values, nx, ns, ind_lb, ind_ub)
+end
+
+function PrimalVector!(values::VT, nx::Int, ns::Int, ind_lb, ind_ub) where {T, VT <: AbstractVector{T}}
     x = _madnlp_unsafe_wrap(values, nx)
     s = _madnlp_unsafe_wrap(values, ns, nx+1)
     values_lr = view(values, ind_lb)

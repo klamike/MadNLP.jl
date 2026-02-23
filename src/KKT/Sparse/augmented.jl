@@ -45,10 +45,23 @@ function create_kkt_system(
     hessian_approximation=ExactHessian,
     qn_options=QuasiNewtonOptions(),
 ) where {T,VT}
+    structure = _build_sparsekkt_structure(cb; hessian_approximation=hessian_approximation, qn_options=qn_options)
 
-    n_slack = length(cb.ind_ineq)
-    # Deduce KKT size.
+    I = create_array(cb, Int32, structure.aug_mat_length)
+    J = create_array(cb, Int32, structure.aug_mat_length)
+    V = VT(undef, structure.aug_mat_length)
+    fill!(V, 0.0)  # Need to initiate V to avoid NaN
 
+    build_aug_indices!(I, J, structure)
+
+    return build_sparse_kkt_system(cb, I, J, V, structure, linear_solver; opt_linear_solver=opt_linear_solver)
+end
+
+function _build_sparsekkt_structure(
+    cb::SparseCallback{T,VT};
+    hessian_approximation=ExactHessian,
+    qn_options=QuasiNewtonOptions(),
+) where {T,VT}
     n = cb.nvar
     m = cb.ncon
     # Evaluate sparsity pattern
@@ -74,12 +87,22 @@ function create_kkt_system(
     aug_vec_length = n_tot+m
     aug_mat_length = n_tot+m+n_hess+n_jac+n_slack
 
-    I = create_array(cb, Int32, aug_mat_length)
-    J = create_array(cb, Int32, aug_mat_length)
-    V = VT(undef, aug_mat_length)
-    fill!(V, 0.0)  # Need to initiate V to avoid NaN
+    return (
+        n=n, m=m, nlb=nlb, nub=nub,
+        n_slack=n_slack, n_jac=n_jac, n_hess=n_hess, n_tot=n_tot,
+        aug_vec_length=aug_vec_length, aug_mat_length=aug_mat_length,
+        jac_sparsity_I=jac_sparsity_I, jac_sparsity_J=jac_sparsity_J,
+        hess_sparsity_I=hess_sparsity_I, hess_sparsity_J=hess_sparsity_J,
+        ind_ineq=ind_ineq,
+        quasi_newton=quasi_newton,
+    )
+end
 
-    offset = n_tot+n_jac+n_slack+n_hess+m
+function build_aug_indices!(I, J, structure)
+    (; n, n_slack, n_jac, n_hess, n_tot, m, ind_ineq,
+       jac_sparsity_I, jac_sparsity_J, hess_sparsity_I, hess_sparsity_J) = structure
+
+    offset = n_tot + n_jac + n_slack + n_hess + m
 
     I[1:n_tot] .= 1:n_tot
     I[n_tot+1:n_tot+n_hess] = hess_sparsity_I
@@ -92,9 +115,32 @@ function create_kkt_system(
     J[n_tot+n_hess+1:n_tot+n_hess+n_jac] .= jac_sparsity_J
     J[n_tot+n_hess+n_jac+1:n_tot+n_hess+n_jac+n_slack] .= (n+1:n+n_slack)
     J[n_tot+n_hess+n_jac+n_slack+1:offset] .= (n_tot+1:n_tot+m)
+    return
+end
+
+function _build_sparsekkt_views(V::VT, structure) where {T, VT<:AbstractVector{T}}
+    (; n_jac, n_hess, n_slack, n_tot, m) = structure
 
     pr_diag = _madnlp_unsafe_wrap(V, n_tot)
     du_diag = _madnlp_unsafe_wrap(V, m, n_jac+n_slack+n_hess+n_tot+1)
+    hess = _madnlp_unsafe_wrap(V, n_hess, n_tot+1)
+    jac = _madnlp_unsafe_wrap(V, n_jac+n_slack, n_hess+n_tot+1)
+    jac_callback = _madnlp_unsafe_wrap(V, n_jac, n_hess+n_tot+1)
+
+    return (pr_diag=pr_diag, du_diag=du_diag, hess=hess, jac=jac, jac_callback=jac_callback)
+end
+
+function build_sparse_kkt_system(
+    cb::SparseCallback{T,VT},
+    I, J, V::VT,
+    structure,
+    linear_solver::Type;
+    opt_linear_solver=default_options(linear_solver),
+) where {T,VT}
+    (; n, m, nlb, nub, n_slack, n_tot,
+       aug_vec_length, ind_ineq,
+       jac_sparsity_I, jac_sparsity_J, hess_sparsity_I, hess_sparsity_J,
+       quasi_newton) = structure
 
     reg = VT(undef, n_tot)
     l_diag = VT(undef, nlb)
@@ -102,9 +148,7 @@ function create_kkt_system(
     l_lower = VT(undef, nlb)
     u_lower = VT(undef, nub)
 
-    hess = _madnlp_unsafe_wrap(V, n_hess, n_tot+1)
-    jac = _madnlp_unsafe_wrap(V, n_jac+n_slack, n_hess+n_tot+1)
-    jac_callback = _madnlp_unsafe_wrap(V, n_jac, n_hess+n_tot+1)
+    (; jac, hess, jac_callback, pr_diag, du_diag) = _build_sparsekkt_views(V, structure)
 
     aug_raw = SparseMatrixCOO(aug_vec_length,aug_vec_length,I,J,V)
     jac_raw = SparseMatrixCOO(

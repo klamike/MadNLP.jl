@@ -507,6 +507,79 @@ function create_callback(
     )
 end
 
+function init_sparse_callback(
+    nlp::AbstractNLPModel{T,VT},
+    con_buffer::VT, jac_buffer::VT, grad_buffer::VT, hess_buffer::VT,
+    jac_I, jac_J, hess_I, hess_J,
+    obj_scale::Base.RefValue{T}, con_scale::VT, jac_scale::VT;
+    fixed_variable_treatment = MakeParameter,
+    equality_treatment = EnforceEquality,
+    populate_structure = true,
+) where {T,VT}
+    nnzj = get_nnzj(nlp.meta)
+    nnzh = get_nnzh(nlp.meta)
+
+    if populate_structure
+        if nnzj > 0
+            NLPModels.jac_structure!(nlp, jac_I, jac_J)
+        end
+        if nnzh > 0
+            NLPModels.hess_structure!(nlp, hess_I, hess_J)
+        end
+    end
+
+    fixed_handler, nx, nnzj, nnzh = create_sparse_fixed_handler(
+        fixed_variable_treatment, nlp, jac_I, jac_J, hess_I, hess_J, hess_buffer,
+    )
+    equality_handler = equality_treatment()
+
+    # Get indexing
+    lvar = get_lvar(nlp)
+    uvar = get_uvar(nlp)
+    lcon = get_lcon(nlp)
+    ucon = get_ucon(nlp)
+    m = get_ncon(nlp)
+
+    # Get fixed variables
+    ind_fixed = findall(lvar .== uvar)
+    if length(ind_fixed) > 0 && fixed_variable_treatment == MakeParameter
+        ind_free = findall(lvar .< uvar)
+        lvar = lvar[ind_free]
+        uvar = uvar[ind_free]
+    end
+
+    indexes = _parse_indexes(lvar, uvar, lcon, ucon, equality_treatment)
+
+    return SparseCallback(
+        nlp,
+        nx,
+        m,
+        nnzj,
+        nnzh,
+        con_buffer,
+        jac_buffer,
+        grad_buffer,
+        hess_buffer,
+        jac_I,
+        jac_J,
+        hess_I,
+        hess_J,
+        obj_scale,
+        get_minimize(nlp) ? one(T) : -one(T),
+        con_scale,
+        jac_scale,
+        fixed_handler,
+        equality_handler,
+        indexes.ind_eq,
+        indexes.ind_ineq,
+        ind_fixed,
+        indexes.ind_lb,
+        indexes.ind_ub,
+        indexes.ind_llb,
+        indexes.ind_uub,
+    )
+end
+
 function create_callback(
     ::Type{DenseCallback},
     nlp::AbstractNLPModel{T,VT};
