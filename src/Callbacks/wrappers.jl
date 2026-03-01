@@ -10,7 +10,7 @@ struct DenseWrapperModel{T,VT,T2,VT2,MT2, I <: NLPModels.AbstractNLPModel{T2,VT2
     hess::MT2
     param::VT2
     meta::NLPModels.NLPModelMeta{T, VT}
-    pmeta::ParametricNLPModels.ParametricNLPModelMeta
+    pmeta::NLPModels.ParametricNLPModelMeta
     counters::NLPModels.Counters
 end
 
@@ -28,7 +28,7 @@ struct SparseWrapperModel{T,VT,T2,VI2,VT2,I <: NLPModels.AbstractNLPModel{T2,VT2
     hess::VT2
     param::VT2
     meta::NLPModels.NLPModelMeta{T, VT}
-    pmeta::ParametricNLPModels.ParametricNLPModelMeta
+    pmeta::NLPModels.ParametricNLPModelMeta
     counters::NLPModels.Counters
 end
 
@@ -228,75 +228,75 @@ function NLPModels.hess_dense!(
     return hess
 end
 
-function ParametricNLPModels.jpprod!(m::AbstractWrapperModel, x, v, Jv)
+function NLPModels.jpprod!(m::AbstractWrapperModel, x, v, Jv)
     copyto!(m.x, x)
     copyto!(m.param, v)
-    ParametricNLPModels.jpprod!(m.inner, m.x, m.param, m.con)
+    NLPModels.jpprod!(m.inner, m.x, m.param, m.con)
     copyto!(Jv, m.con)
     return Jv
 end
 
-function ParametricNLPModels.jptprod!(m::AbstractWrapperModel, x, v, Jtv)
+function NLPModels.jptprod!(m::AbstractWrapperModel, x, v, Jtv)
     copyto!(m.x, x)
     copyto!(m.con, v)
-    ParametricNLPModels.jptprod!(m.inner, m.x, m.con, m.param)
+    NLPModels.jptprod!(m.inner, m.x, m.con, m.param)
     copyto!(Jtv, m.param)
     return Jtv
 end
 
-function ParametricNLPModels.hpprod!(m::AbstractWrapperModel, x, y, v, Hv; obj_weight = one(eltype(x)))
+function NLPModels.hpprod!(m::AbstractWrapperModel, x, y, v, Hv; obj_weight = one(eltype(x)))
     copyto!(m.x, x)
     copyto!(m.y, y)
     copyto!(m.param, v)
-    ParametricNLPModels.hpprod!(m.inner, m.x, m.y, m.param, m.grad; obj_weight = obj_weight)
+    NLPModels.hpprod!(m.inner, m.x, m.y, m.param, m.grad; obj_weight = obj_weight)
     copyto!(Hv, m.grad)
     return Hv
 end
 
-function ParametricNLPModels.hptprod!(m::AbstractWrapperModel, x, y, v, Htv; obj_weight = one(eltype(x)))
+function NLPModels.hptprod!(m::AbstractWrapperModel, x, y, v, Htv; obj_weight = one(eltype(x)))
     copyto!(m.x, x)
     copyto!(m.y, y)
     copyto!(m.grad, v)
-    ParametricNLPModels.hptprod!(m.inner, m.x, m.y, m.grad, m.param; obj_weight = obj_weight)
+    NLPModels.hptprod!(m.inner, m.x, m.y, m.grad, m.param; obj_weight = obj_weight)
     copyto!(Htv, m.param)
     return Htv
 end
 
-function ParametricNLPModels.jac_param_structure!(
+function NLPModels.jac_param_structure!(
     m::AbstractWrapperModel,
     rows::AbstractVector{<:Integer},
     cols::AbstractVector{<:Integer},
 )
     rows_inner = similar(m.x, Int, length(rows))
     cols_inner = similar(m.x, Int, length(cols))
-    ParametricNLPModels.jac_param_structure!(m.inner, rows_inner, cols_inner)
+    NLPModels.jac_param_structure!(m.inner, rows_inner, cols_inner)
     copyto!(rows, rows_inner)
     copyto!(cols, cols_inner)
     return rows, cols
 end
 
-function ParametricNLPModels.hess_param_structure!(
+function NLPModels.hess_param_structure!(
     m::AbstractWrapperModel,
     rows::AbstractVector{<:Integer},
     cols::AbstractVector{<:Integer},
 )
     rows_inner = similar(m.x, Int, length(rows))
     cols_inner = similar(m.x, Int, length(cols))
-    ParametricNLPModels.hess_param_structure!(m.inner, rows_inner, cols_inner)
+    NLPModels.hess_param_structure!(m.inner, rows_inner, cols_inner)
     copyto!(rows, rows_inner)
     copyto!(cols, cols_inner)
     return rows, cols
 end
 
-function ParametricNLPModels.jac_param_coord!(m::AbstractWrapperModel, x, vals)
+function NLPModels.jac_param_coord!(m::AbstractWrapperModel, x, vals)
     copyto!(m.x, x)
     vals_inner = similar(m.x, eltype(vals), length(vals))
-    ParametricNLPModels.jac_param_coord!(m.inner, m.x, vals_inner)
+    NLPModels.jac_param_coord!(m.inner, m.x, vals_inner)
     copyto!(vals, vals_inner)
     return vals
 end
 
-function ParametricNLPModels.hess_param_coord!(
+function NLPModels.hess_param_coord!(
     m::AbstractWrapperModel,
     x,
     y,
@@ -306,150 +306,150 @@ function ParametricNLPModels.hess_param_coord!(
     copyto!(m.x, x)
     copyto!(m.y, y)
     vals_inner = similar(m.x, eltype(vals), length(vals))
-    ParametricNLPModels.hess_param_coord!(m.inner, m.x, m.y, vals_inner; obj_weight = obj_weight)
+    NLPModels.hess_param_coord!(m.inner, m.x, m.y, vals_inner; obj_weight = obj_weight)
     copyto!(vals, vals_inner)
     return vals
 end
 
-function ParametricNLPModels.grad_param!(m::AbstractWrapperModel, x, g)
+function NLPModels.grad_param!(m::AbstractWrapperModel, x, g)
     copyto!(m.x, x)
-    ParametricNLPModels.grad_param!(m.inner, m.x, m.param)
+    NLPModels.grad_param!(m.inner, m.x, m.param)
     copyto!(g, m.param)
     return g
 end
 
-function ParametricNLPModels.lvar_jac_param_structure!(
+function NLPModels.lvar_jac_param_structure!(
     m::AbstractWrapperModel,
     rows::AbstractVector{<:Integer},
     cols::AbstractVector{<:Integer},
 )
     rows_inner = similar(m.x, Int, length(rows))
     cols_inner = similar(m.x, Int, length(cols))
-    ParametricNLPModels.lvar_jac_param_structure!(m.inner, rows_inner, cols_inner)
+    NLPModels.lvar_jac_param_structure!(m.inner, rows_inner, cols_inner)
     copyto!(rows, rows_inner)
     copyto!(cols, cols_inner)
     return rows, cols
 end
 
-function ParametricNLPModels.uvar_jac_param_structure!(
+function NLPModels.uvar_jac_param_structure!(
     m::AbstractWrapperModel,
     rows::AbstractVector{<:Integer},
     cols::AbstractVector{<:Integer},
 )
     rows_inner = similar(m.x, Int, length(rows))
     cols_inner = similar(m.x, Int, length(cols))
-    ParametricNLPModels.uvar_jac_param_structure!(m.inner, rows_inner, cols_inner)
+    NLPModels.uvar_jac_param_structure!(m.inner, rows_inner, cols_inner)
     copyto!(rows, rows_inner)
     copyto!(cols, cols_inner)
     return rows, cols
 end
 
-function ParametricNLPModels.lcon_jac_param_structure!(
+function NLPModels.lcon_jac_param_structure!(
     m::AbstractWrapperModel,
     rows::AbstractVector{<:Integer},
     cols::AbstractVector{<:Integer},
 )
     rows_inner = similar(m.x, Int, length(rows))
     cols_inner = similar(m.x, Int, length(cols))
-    ParametricNLPModels.lcon_jac_param_structure!(m.inner, rows_inner, cols_inner)
+    NLPModels.lcon_jac_param_structure!(m.inner, rows_inner, cols_inner)
     copyto!(rows, rows_inner)
     copyto!(cols, cols_inner)
     return rows, cols
 end
 
-function ParametricNLPModels.ucon_jac_param_structure!(
+function NLPModels.ucon_jac_param_structure!(
     m::AbstractWrapperModel,
     rows::AbstractVector{<:Integer},
     cols::AbstractVector{<:Integer},
 )
     rows_inner = similar(m.x, Int, length(rows))
     cols_inner = similar(m.x, Int, length(cols))
-    ParametricNLPModels.ucon_jac_param_structure!(m.inner, rows_inner, cols_inner)
+    NLPModels.ucon_jac_param_structure!(m.inner, rows_inner, cols_inner)
     copyto!(rows, rows_inner)
     copyto!(cols, cols_inner)
     return rows, cols
 end
 
-function ParametricNLPModels.lvar_jac_param_coord!(m::AbstractWrapperModel, vals)
+function NLPModels.lvar_jac_param_coord!(m::AbstractWrapperModel, vals)
     vals_inner = similar(m.x, eltype(vals), length(vals))
-    ParametricNLPModels.lvar_jac_param_coord!(m.inner, vals_inner)
+    NLPModels.lvar_jac_param_coord!(m.inner, vals_inner)
     copyto!(vals, vals_inner)
     return vals
 end
 
-function ParametricNLPModels.uvar_jac_param_coord!(m::AbstractWrapperModel, vals)
+function NLPModels.uvar_jac_param_coord!(m::AbstractWrapperModel, vals)
     vals_inner = similar(m.x, eltype(vals), length(vals))
-    ParametricNLPModels.uvar_jac_param_coord!(m.inner, vals_inner)
+    NLPModels.uvar_jac_param_coord!(m.inner, vals_inner)
     copyto!(vals, vals_inner)
     return vals
 end
 
-function ParametricNLPModels.lcon_jac_param_coord!(m::AbstractWrapperModel, vals)
+function NLPModels.lcon_jac_param_coord!(m::AbstractWrapperModel, vals)
     vals_inner = similar(m.x, eltype(vals), length(vals))
-    ParametricNLPModels.lcon_jac_param_coord!(m.inner, vals_inner)
+    NLPModels.lcon_jac_param_coord!(m.inner, vals_inner)
     copyto!(vals, vals_inner)
     return vals
 end
 
-function ParametricNLPModels.ucon_jac_param_coord!(m::AbstractWrapperModel, vals)
+function NLPModels.ucon_jac_param_coord!(m::AbstractWrapperModel, vals)
     vals_inner = similar(m.x, eltype(vals), length(vals))
-    ParametricNLPModels.ucon_jac_param_coord!(m.inner, vals_inner)
+    NLPModels.ucon_jac_param_coord!(m.inner, vals_inner)
     copyto!(vals, vals_inner)
     return vals
 end
 
-function ParametricNLPModels.lvar_jpprod!(m::AbstractWrapperModel, v, Jv)
+function NLPModels.lvar_jpprod!(m::AbstractWrapperModel, v, Jv)
     copyto!(m.param, v)
-    ParametricNLPModels.lvar_jpprod!(m.inner, m.param, m.grad)
+    NLPModels.lvar_jpprod!(m.inner, m.param, m.grad)
     copyto!(Jv, m.grad)
     return Jv
 end
 
-function ParametricNLPModels.uvar_jpprod!(m::AbstractWrapperModel, v, Jv)
+function NLPModels.uvar_jpprod!(m::AbstractWrapperModel, v, Jv)
     copyto!(m.param, v)
-    ParametricNLPModels.uvar_jpprod!(m.inner, m.param, m.grad)
+    NLPModels.uvar_jpprod!(m.inner, m.param, m.grad)
     copyto!(Jv, m.grad)
     return Jv
 end
 
-function ParametricNLPModels.lcon_jpprod!(m::AbstractWrapperModel, v, Jv)
+function NLPModels.lcon_jpprod!(m::AbstractWrapperModel, v, Jv)
     copyto!(m.param, v)
-    ParametricNLPModels.lcon_jpprod!(m.inner, m.param, m.con)
+    NLPModels.lcon_jpprod!(m.inner, m.param, m.con)
     copyto!(Jv, m.con)
     return Jv
 end
 
-function ParametricNLPModels.ucon_jpprod!(m::AbstractWrapperModel, v, Jv)
+function NLPModels.ucon_jpprod!(m::AbstractWrapperModel, v, Jv)
     copyto!(m.param, v)
-    ParametricNLPModels.ucon_jpprod!(m.inner, m.param, m.con)
+    NLPModels.ucon_jpprod!(m.inner, m.param, m.con)
     copyto!(Jv, m.con)
     return Jv
 end
 
-function ParametricNLPModels.lvar_jptprod!(m::AbstractWrapperModel, v, Jtv)
+function NLPModels.lvar_jptprod!(m::AbstractWrapperModel, v, Jtv)
     copyto!(m.grad, v)
-    ParametricNLPModels.lvar_jptprod!(m.inner, m.grad, m.param)
+    NLPModels.lvar_jptprod!(m.inner, m.grad, m.param)
     copyto!(Jtv, m.param)
     return Jtv
 end
 
-function ParametricNLPModels.uvar_jptprod!(m::AbstractWrapperModel, v, Jtv)
+function NLPModels.uvar_jptprod!(m::AbstractWrapperModel, v, Jtv)
     copyto!(m.grad, v)
-    ParametricNLPModels.uvar_jptprod!(m.inner, m.grad, m.param)
+    NLPModels.uvar_jptprod!(m.inner, m.grad, m.param)
     copyto!(Jtv, m.param)
     return Jtv
 end
 
-function ParametricNLPModels.lcon_jptprod!(m::AbstractWrapperModel, v, Jtv)
+function NLPModels.lcon_jptprod!(m::AbstractWrapperModel, v, Jtv)
     copyto!(m.con, v)
-    ParametricNLPModels.lcon_jptprod!(m.inner, m.con, m.param)
+    NLPModels.lcon_jptprod!(m.inner, m.con, m.param)
     copyto!(Jtv, m.param)
     return Jtv
 end
 
-function ParametricNLPModels.ucon_jptprod!(m::AbstractWrapperModel, v, Jtv)
+function NLPModels.ucon_jptprod!(m::AbstractWrapperModel, v, Jtv)
     copyto!(m.con, v)
-    ParametricNLPModels.ucon_jptprod!(m.inner, m.con, m.param)
+    NLPModels.ucon_jptprod!(m.inner, m.con, m.param)
     copyto!(Jtv, m.param)
     return Jtv
 end

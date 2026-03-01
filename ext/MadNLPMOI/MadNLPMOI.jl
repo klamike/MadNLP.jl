@@ -2,7 +2,6 @@ module MadNLPMOI
 
 import MadNLP
 import NLPModels
-import ParametricNLPModels
 import MathOptInterface as MOI
 import MathOptInterface.Utilities as MOIU
 

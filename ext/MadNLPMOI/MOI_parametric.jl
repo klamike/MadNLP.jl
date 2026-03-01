@@ -1,6 +1,6 @@
 include("MOI_parametric_utils.jl")
 
-function ParametricNLPModels.jac_param_structure!(
+function NLPModels.jac_param_structure!(
     nlp::MOIModel{T},
     rows::AbstractVector{<:Integer},
     cols::AbstractVector{<:Integer},
@@ -18,7 +18,7 @@ function ParametricNLPModels.jac_param_structure!(
     return rows, cols
 end
 
-function ParametricNLPModels.jac_param_coord!(
+function NLPModels.jac_param_coord!(
     nlp::MOIModel{T},
     x::AbstractVector,
     vals::AbstractVector,
@@ -41,7 +41,7 @@ function ParametricNLPModels.jac_param_coord!(
     return vals
 end
 
-function ParametricNLPModels.hess_param_structure!(
+function NLPModels.hess_param_structure!(
     nlp::MOIModel{T},
     rows::AbstractVector{<:Integer},
     cols::AbstractVector{<:Integer},
@@ -58,7 +58,7 @@ function ParametricNLPModels.hess_param_structure!(
     return rows, cols
 end
 
-function ParametricNLPModels.hess_param_coord!(
+function NLPModels.hess_param_coord!(
     nlp::MOIModel{T},
     x::AbstractVector,
     y::AbstractVector,
@@ -99,7 +99,7 @@ function ParametricNLPModels.hess_param_coord!(
     return vals
 end
 
-function ParametricNLPModels.jpprod!(
+function NLPModels.jpprod!(
     nlp::MOIModel{T}, x::AbstractVector, v::AbstractVector, Jv::AbstractVector,
 ) where {T}
     model = nlp.model
@@ -124,7 +124,7 @@ function ParametricNLPModels.jpprod!(
     return Jv
 end
 
-function ParametricNLPModels.jptprod!(
+function NLPModels.jptprod!(
     nlp::MOIModel{T}, x::AbstractVector, v::AbstractVector, Jtv::AbstractVector,
 ) where {T}
     model = nlp.model
@@ -151,7 +151,7 @@ function ParametricNLPModels.jptprod!(
     return Jtv
 end
 
-function ParametricNLPModels.hpprod!(
+function NLPModels.hpprod!(
     nlp::MOIModel{T}, x::AbstractVector, y::AbstractVector,
     v::AbstractVector, Hv::AbstractVector; obj_weight::Real = one(T),
 ) where {T}
@@ -184,7 +184,7 @@ function ParametricNLPModels.hpprod!(
     return Hv
 end
 
-function ParametricNLPModels.hptprod!(
+function NLPModels.hptprod!(
     nlp::MOIModel{T}, x::AbstractVector, y::AbstractVector,
     v::AbstractVector, Htv::AbstractVector; obj_weight::Real = one(T),
 ) where {T}
@@ -217,7 +217,7 @@ function ParametricNLPModels.hptprod!(
     return Htv
 end
 
-function ParametricNLPModels.grad_param!(
+function NLPModels.grad_param!(
     nlp::MOIModel{T}, x::AbstractVector, g::AbstractVector,
 ) where {T}
     model = nlp.model
@@ -242,19 +242,19 @@ function ParametricNLPModels.grad_param!(
     return g
 end
 
-ParametricNLPModels.lcon_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)
-ParametricNLPModels.ucon_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)
-ParametricNLPModels.lvar_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)
-ParametricNLPModels.uvar_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)
-ParametricNLPModels.lcon_jac_param_coord!(::MOIModel{T}, vals::AbstractVector) where {T} = fill!(vals, zero(T))
-ParametricNLPModels.ucon_jac_param_coord!(::MOIModel{T}, vals::AbstractVector) where {T} = fill!(vals, zero(T))
-ParametricNLPModels.lvar_jac_param_coord!(::MOIModel{T}, vals::AbstractVector) where {T} = fill!(vals, zero(T))
-ParametricNLPModels.uvar_jac_param_coord!(::MOIModel{T}, vals::AbstractVector) where {T} = fill!(vals, zero(T))
-ParametricNLPModels.lcon_jpprod!(::MOIModel{T}, ::AbstractVector, Jv::AbstractVector) where {T} = fill!(Jv, zero(T))
-ParametricNLPModels.ucon_jpprod!(::MOIModel{T}, ::AbstractVector, Jv::AbstractVector) where {T} = fill!(Jv, zero(T))
-ParametricNLPModels.lvar_jpprod!(::MOIModel{T}, ::AbstractVector, Jv::AbstractVector) where {T} = fill!(Jv, zero(T))
-ParametricNLPModels.uvar_jpprod!(::MOIModel{T}, ::AbstractVector, Jv::AbstractVector) where {T} = fill!(Jv, zero(T))
-ParametricNLPModels.lcon_jptprod!(::MOIModel{T}, ::AbstractVector, Jtv::AbstractVector) where {T} = fill!(Jtv, zero(T))
-ParametricNLPModels.ucon_jptprod!(::MOIModel{T}, ::AbstractVector, Jtv::AbstractVector) where {T} = fill!(Jtv, zero(T))
-ParametricNLPModels.lvar_jptprod!(::MOIModel{T}, ::AbstractVector, Jtv::AbstractVector) where {T} = fill!(Jtv, zero(T))
-ParametricNLPModels.uvar_jptprod!(::MOIModel{T}, ::AbstractVector, Jtv::AbstractVector) where {T} = fill!(Jtv, zero(T))
+NLPModels.lcon_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)
+NLPModels.ucon_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)
+NLPModels.lvar_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)
+NLPModels.uvar_jac_param_structure!(::MOIModel{T}, rows::AbstractVector{<:Integer}, cols::AbstractVector{<:Integer}) where {T} = (rows, cols)
+NLPModels.lcon_jac_param_coord!(::MOIModel{T}, vals::AbstractVector) where {T} = fill!(vals, zero(T))
+NLPModels.ucon_jac_param_coord!(::MOIModel{T}, vals::AbstractVector) where {T} = fill!(vals, zero(T))
+NLPModels.lvar_jac_param_coord!(::MOIModel{T}, vals::AbstractVector) where {T} = fill!(vals, zero(T))
+NLPModels.uvar_jac_param_coord!(::MOIModel{T}, vals::AbstractVector) where {T} = fill!(vals, zero(T))
+NLPModels.lcon_jpprod!(::MOIModel{T}, ::AbstractVector, Jv::AbstractVector) where {T} = fill!(Jv, zero(T))
+NLPModels.ucon_jpprod!(::MOIModel{T}, ::AbstractVector, Jv::AbstractVector) where {T} = fill!(Jv, zero(T))
+NLPModels.lvar_jpprod!(::MOIModel{T}, ::AbstractVector, Jv::AbstractVector) where {T} = fill!(Jv, zero(T))
+NLPModels.uvar_jpprod!(::MOIModel{T}, ::AbstractVector, Jv::AbstractVector) where {T} = fill!(Jv, zero(T))
+NLPModels.lcon_jptprod!(::MOIModel{T}, ::AbstractVector, Jtv::AbstractVector) where {T} = fill!(Jtv, zero(T))
+NLPModels.ucon_jptprod!(::MOIModel{T}, ::AbstractVector, Jtv::AbstractVector) where {T} = fill!(Jtv, zero(T))
+NLPModels.lvar_jptprod!(::MOIModel{T}, ::AbstractVector, Jtv::AbstractVector) where {T} = fill!(Jtv, zero(T))
+NLPModels.uvar_jptprod!(::MOIModel{T}, ::AbstractVector, Jtv::AbstractVector) where {T} = fill!(Jtv, zero(T))
