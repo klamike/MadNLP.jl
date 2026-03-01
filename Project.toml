@@ -17,7 +17,7 @@ MUMPS_seq_jll = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
 OpenBLAS32_jll = "656ef2d0-ae68-5445-9ca0-591084a874a2"
 
 [sources]
-NLPModels = {rev = "mk/param_ad", url = "https://github.com/klamike/NLPModels.jl"}
+NLPModels = {rev = "mk/param_api", url = "https://github.com/klamike/NLPModels.jl"}
 
 [weakdeps]
 MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"

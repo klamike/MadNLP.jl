@@ -1514,8 +1514,8 @@ function _setup_nlp(model::Optimizer; array_type = nothing)
         ),
         NLPModels.ParametricNLPModelMeta(
             nparam = n_p,
-            nnzj = _param_jac_nnz(model),
-            nnzh = _param_hess_nnz(model),
+            nnzjp = _param_jac_nnz(model),
+            nnzhp = _param_hess_nnz(model),
             nnzjlcon = 0,
             nnzjucon = 0,
             nnzjlvar = 0,
