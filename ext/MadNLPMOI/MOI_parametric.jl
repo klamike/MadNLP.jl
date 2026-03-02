@@ -104,7 +104,7 @@ function NLPModels.jpprod!(
 ) where {T}
     model = nlp.model
     n_x = nlp.meta.nvar
-    n_p = nlp.pmeta.nparam
+    n_p = nlp.meta.nparam
     n_qp = _n_qp(model)
     n_nlp_c = _n_nlp(model)
 
@@ -129,7 +129,7 @@ function NLPModels.jptprod!(
 ) where {T}
     model = nlp.model
     n_x = nlp.meta.nvar
-    n_p = nlp.pmeta.nparam
+    n_p = nlp.meta.nparam
     n_qp = _n_qp(model)
     n_nlp_c = _n_nlp(model)
 
@@ -157,7 +157,7 @@ function NLPModels.hpprod!(
 ) where {T}
     model = nlp.model
     n_x = nlp.meta.nvar
-    n_p = nlp.pmeta.nparam
+    n_p = nlp.meta.nparam
     n_qp = _n_qp(model)
     n_nlp_c = _n_nlp(model)
     σ = T(obj_weight)
@@ -190,7 +190,7 @@ function NLPModels.hptprod!(
 ) where {T}
     model = nlp.model
     n_x = nlp.meta.nvar
-    n_p = nlp.pmeta.nparam
+    n_p = nlp.meta.nparam
     n_qp = _n_qp(model)
     n_nlp_c = _n_nlp(model)
     σ = T(obj_weight)
@@ -222,7 +222,7 @@ function NLPModels.grad_param!(
 ) where {T}
     model = nlp.model
     n_x = nlp.meta.nvar
-    n_p = nlp.pmeta.nparam
+    n_p = nlp.meta.nparam
 
     fill!(g, zero(T))
     _fill_x_combined!(model, x)

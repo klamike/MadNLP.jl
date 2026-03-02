@@ -1280,7 +1280,6 @@ end
 ### NLPModels wrapper
 struct MOIModel{T} <: NLPModels.AbstractNLPModel{T,Vector{T}}
     meta::NLPModels.NLPModelMeta{T, Vector{T}}
-    pmeta::NLPModels.ParametricNLPModelMeta
     model::Optimizer
     counters::NLPModels.Counters
 end
@@ -1511,34 +1510,16 @@ function _setup_nlp(model::Optimizer; array_type = nothing)
             jprod_available = model.jprod_available,
             hprod_available = model.hprod_available,
             hess_available = model.hess_available,
-        ),
-        NLPModels.ParametricNLPModelMeta(
             nparam = n_p,
             nnzjp = _param_jac_nnz(model),
             nnzhp = _param_hess_nnz(model),
-            nnzjplcon = 0,
-            nnzjpucon = 0,
-            nnzjplvar = 0,
-            nnzjpuvar = 0,
-            grad_param_available = true,
+            nnzgp = n_p,
             jac_param_available = true,
             hess_param_available = true,
             jpprod_available = true,
             jptprod_available = true,
             hpprod_available = true,
             hptprod_available = true,
-            lcon_jac_available = false,
-            ucon_jac_available = false,
-            lvar_jac_available = false,
-            uvar_jac_available = false,
-            lcon_jpprod_available = false,
-            ucon_jpprod_available = false,
-            lvar_jpprod_available = false,
-            uvar_jpprod_available = false,
-            lcon_jptprod_available = false,
-            ucon_jptprod_available = false,
-            lvar_jptprod_available = false,
-            uvar_jptprod_available = false,
         ),
         model,
         NLPModels.Counters(),
