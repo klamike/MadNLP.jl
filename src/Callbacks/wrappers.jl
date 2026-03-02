@@ -10,7 +10,6 @@ struct DenseWrapperModel{T,VT,T2,VT2,MT2, I <: NLPModels.AbstractNLPModel{T2,VT2
     hess::MT2
     param::VT2
     meta::NLPModels.NLPModelMeta{T, VT}
-    pmeta::NLPModels.ParametricNLPModelMeta
     counters::NLPModels.Counters
 end
 
@@ -28,7 +27,6 @@ struct SparseWrapperModel{T,VT,T2,VI2,VT2,I <: NLPModels.AbstractNLPModel{T2,VT2
     hess::VT2
     param::VT2
     meta::NLPModels.NLPModelMeta{T, VT}
-    pmeta::NLPModels.ParametricNLPModelMeta
     counters::NLPModels.Counters
 end
 
@@ -63,9 +61,16 @@ function DenseWrapperModel(Arr, m::NLPModels.AbstractNLPModel)
             nnzh = get_nnzh(m),
             sparse_jacobian = false,
             sparse_hessian = false,
-            minimize = get_minimize(m)
+            minimize = get_minimize(m),
+            nparam = m.meta.nparam,
+            nnzjp = m.meta.nnzjp,
+            nnzhp = m.meta.nnzhp,
+            nnzgp = m.meta.nnzgp,
+            nnzjplcon = m.meta.nnzjplcon,
+            nnzjpucon = m.meta.nnzjpucon,
+            nnzjplvar = m.meta.nnzjplvar,
+            nnzjpuvar = m.meta.nnzjpuvar,
         ),
-        m.pmeta,
         NLPModels.Counters()
     )
 end
@@ -105,9 +110,16 @@ function SparseWrapperModel(Arr, m::NLPModels.AbstractNLPModel)
             nnzh = get_nnzh(m),
             sparse_jacobian = true,
             sparse_hessian = true,
-            minimize = get_minimize(m)
+            minimize = get_minimize(m),
+            nparam = m.meta.nparam,
+            nnzjp = m.meta.nnzjp,
+            nnzhp = m.meta.nnzhp,
+            nnzgp = m.meta.nnzgp,
+            nnzjplcon = m.meta.nnzjplcon,
+            nnzjpucon = m.meta.nnzjpucon,
+            nnzjplvar = m.meta.nnzjplvar,
+            nnzjpuvar = m.meta.nnzjpuvar,
         ),
-        m.pmeta,
         NLPModels.Counters()
     )
 end
