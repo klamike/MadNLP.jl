@@ -53,8 +53,10 @@ function NLPModels.hess_param_structure!(
     sparsity_qp = MOI.hessian_lagrangian_structure(model.param_qp_data)
     k = _fill_param_hess_structure!(rows, cols, k, sparsity_qp, n_x)
 
-    sparsity_nlp = MOI.hessian_lagrangian_structure(model.param_evaluator)
-    k = _fill_param_hess_structure!(rows, cols, k, sparsity_nlp, n_x)
+    if model.hess_available
+        sparsity_nlp = MOI.hessian_lagrangian_structure(model.param_evaluator)
+        k = _fill_param_hess_structure!(rows, cols, k, sparsity_nlp, n_x)
+    end
     return rows, cols
 end
 
@@ -85,17 +87,19 @@ function NLPModels.hess_param_coord!(
     )
     k = _fill_param_hess_values!(vals, k, sparsity_qp, hess_vals_qp, n_x)
 
-    sparsity_nlp = MOI.hessian_lagrangian_structure(model.param_evaluator)
-    hess_vals_nlp = fill!(Vector{T}(undef, length(sparsity_nlp)), zero(T))
-    y_nlp = n_nlp_c > 0 ? view(y, n_qp+1:n_qp+n_nlp_c) : T[]
-    MOI.eval_hessian_lagrangian(
-        model.param_evaluator,
-        hess_vals_nlp,
-        model.param_x_combined,
-        T(obj_weight),
-        y_nlp,
-    )
-    k = _fill_param_hess_values!(vals, k, sparsity_nlp, hess_vals_nlp, n_x)
+    if model.hess_available
+        sparsity_nlp = MOI.hessian_lagrangian_structure(model.param_evaluator)
+        hess_vals_nlp = fill!(Vector{T}(undef, length(sparsity_nlp)), zero(T))
+        y_nlp = n_nlp_c > 0 ? view(y, n_qp+1:n_qp+n_nlp_c) : T[]
+        MOI.eval_hessian_lagrangian(
+            model.param_evaluator,
+            hess_vals_nlp,
+            model.param_x_combined,
+            T(obj_weight),
+            y_nlp,
+        )
+        k = _fill_param_hess_values!(vals, k, sparsity_nlp, hess_vals_nlp, n_x)
+    end
     return vals
 end
 
@@ -176,10 +180,12 @@ function NLPModels.hpprod!(
     MOI.eval_hessian_lagrangian_product(model.param_qp_data, result, model.param_x_combined, ve, σ, y_qp)
     Hv .+= view(result, 1:n_x)
 
-    fill!(result, zero(T))
-    y_nlp = n_nlp_c > 0 ? view(y, n_qp+1:n_qp+n_nlp_c) : T[]
-    MOI.eval_hessian_lagrangian_product(model.param_evaluator, result, model.param_x_combined, ve, σ, y_nlp)
-    Hv .+= view(result, 1:n_x)
+    if model.hess_available
+        fill!(result, zero(T))
+        y_nlp = n_nlp_c > 0 ? view(y, n_qp+1:n_qp+n_nlp_c) : T[]
+        MOI.eval_hessian_lagrangian_product(model.param_evaluator, result, model.param_x_combined, ve, σ, y_nlp)
+        Hv .+= view(result, 1:n_x)
+    end
 
     return Hv
 end
@@ -209,10 +215,12 @@ function NLPModels.hptprod!(
     MOI.eval_hessian_lagrangian_product(model.param_qp_data, result, model.param_x_combined, ve, σ, y_qp)
     Htv .+= view(result, n_x+1:n_x+n_p)
 
-    fill!(result, zero(T))
-    y_nlp = n_nlp_c > 0 ? view(y, n_qp+1:n_qp+n_nlp_c) : T[]
-    MOI.eval_hessian_lagrangian_product(model.param_evaluator, result, model.param_x_combined, ve, σ, y_nlp)
-    Htv .+= view(result, n_x+1:n_x+n_p)
+    if model.hess_available
+        fill!(result, zero(T))
+        y_nlp = n_nlp_c > 0 ? view(y, n_qp+1:n_qp+n_nlp_c) : T[]
+        MOI.eval_hessian_lagrangian_product(model.param_evaluator, result, model.param_x_combined, ve, σ, y_nlp)
+        Htv .+= view(result, n_x+1:n_x+n_p)
+    end
 
     return Htv
 end

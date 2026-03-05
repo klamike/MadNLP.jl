@@ -192,8 +192,10 @@ function _param_hess_nnz(model::Optimizer)
     for (row, col) in MOI.hessian_lagrangian_structure(model.param_qp_data)
         _is_param_hess_entry(row, col, n_x) && (nnz += 1)
     end
-    for (row, col) in MOI.hessian_lagrangian_structure(model.param_evaluator)
-        _is_param_hess_entry(row, col, n_x) && (nnz += 1)
+    if model.hess_available
+        for (row, col) in MOI.hessian_lagrangian_structure(model.param_evaluator)
+            _is_param_hess_entry(row, col, n_x) && (nnz += 1)
+        end
     end
     return nnz
 end

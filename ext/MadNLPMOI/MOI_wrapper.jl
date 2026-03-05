@@ -1421,7 +1421,7 @@ function _setup_model(model::Optimizer)
     model.param_evaluator = MOI.Nonlinear.Evaluator(
         param_model, model.ad_backend, combined_vars
     )
-    MOI.initialize(model.param_evaluator, [:Grad, :Jac, :Hess, :JacVec, :HessVec])
+    MOI.initialize(model.param_evaluator, init_feat)
 
     model.param_x_combined = zeros(Float64, n_x + n_p)
     model.param_v_extended = zeros(Float64, n_x + n_p)
