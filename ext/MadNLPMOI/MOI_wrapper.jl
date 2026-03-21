@@ -1280,6 +1280,7 @@ end
 ### NLPModels wrapper
 struct MOIModel{T} <: NLPModels.AbstractNLPModel{T,Vector{T}}
     meta::NLPModels.NLPModelMeta{T, Vector{T}}
+    param_meta::ParametricNLPModels.ParametricNLPModelMeta
     model::Optimizer
     counters::NLPModels.Counters
 end
@@ -1510,10 +1511,13 @@ function _setup_nlp(model::Optimizer; array_type = nothing)
             jprod_available = model.jprod_available,
             hprod_available = model.hprod_available,
             hess_available = model.hess_available,
+        ),
+        ParametricNLPModels.ParametricNLPModelMeta(
             nparam = n_p,
             nnzjp = _param_jac_nnz(model),
             nnzhp = _param_hess_nnz(model),
             nnzgp = n_p,
+            grad_param_available = true,
             jac_param_available = true,
             hess_param_available = true,
             jpprod_available = true,
