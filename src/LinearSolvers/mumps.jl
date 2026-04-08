@@ -142,23 +142,17 @@ mutable struct MumpsSolver{T} <: AbstractLinearSolver{T}
 end
 
 # this is necessary, when multi-threaded calls are made with Mumps, not to clash with MPI
-mumps_lock = Threads.SpinLock()
+const mumps_lock = ReentrantLock()
 
 function locked_mumps_c(mumps_struc::Struc{Float32})
-    lock(mumps_lock)
-    try
+    lock(mumps_lock) do
         @ccall MUMPS_seq_jll.libsmumps.smumps_c(mumps_struc::Ref{Struc{Float32}})::Cvoid
-    finally
-        unlock(mumps_lock)
     end
 end
 
 function locked_mumps_c(mumps_struc::Struc{Float64})
-    lock(mumps_lock)
-    try
+    lock(mumps_lock) do
         @ccall MUMPS_seq_jll.libdmumps.dmumps_c(mumps_struc::Ref{Struc{Float64}})::Cvoid
-    finally
-        unlock(mumps_lock)
     end
 end
 # ---------------------------------------------------------------------------------------
